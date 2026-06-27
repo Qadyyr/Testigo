@@ -6,6 +6,7 @@ import { useViewRouter } from './use-view-router'
 import { HomeView } from './views/home-view'
 import { LoginView } from './views/login-view'
 import { AdminDashboardView } from './views/admin-dashboard-view'
+import { CreateTestView } from './views/create-test-view'
 import { ParticipantTestView } from './views/participant-test-view'
 
 function ViewSwitch() {
@@ -19,6 +20,9 @@ function ViewSwitch() {
       break
     case 'admin':
       content = <AdminDashboardView />
+      break
+    case 'create':
+      content = <CreateTestView />
       break
     case 'test':
       content = <ParticipantTestView />

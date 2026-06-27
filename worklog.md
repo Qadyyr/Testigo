@@ -113,3 +113,41 @@ Work Log:
 Stage Summary:
 - Fully rebranded to Testigo. Zero "omnitest" references remain in source (.ts/.tsx/.prisma). Browser tab title "Testigo — Secure Test Platform". Login verified with admin@testigo.test / admin1234 → dashboard shows Testigo brand + 2 sample tests. Terminal accent (aria-hidden) shows testigo CLI commands. Lint clean, no runtime errors.
 - New admin login: admin@testigo.test / admin1234 (old admin@omnitest.test row still exists in DB but unused). Demo student phone unchanged: +923001234567.
+
+---
+Task ID: 6
+Agent: full-stack-developer
+Task: Phase 2 frontend — 4-step "Create Test" wizard view (Details & Import → Settings → Access Control → Review & Publish) with dry-run import, commit, and publish flow.
+
+Work Log:
+- Read worklog + question-parser.ts to lock the ParsedQuestion/ParseError/DryRunResult/ParseFormat types and SAMPLE_CSV/JSON/MD constants; verified shadcn ui exports (Card+CardAction, RadioGroup, Switch, Separator, Alert, Table, Tooltip, Skeleton, Badge) and the Brand/SiteFooter/use-view-router contracts.
+- Created src/components/app/views/create-test-view.tsx as a single 'use client' component (CreateTestView) with internal presentational helpers (StepIndicator, Step1Details, DryRunResults, Step2Settings, Step3Access, Step4Review, SuccessScreen, CreateTestSkeleton) — only CreateTestView is exported.
+- Auth guard mirrors the dashboard: useSession, accept ADMIN or SUPER_ADMIN, redirect to ?view=login when unauthenticated/non-admin, render CreateTestSkeleton while status==='loading'.
+- Sticky header: Brand (clickable → navigate('admin')), "Step X of 4" counter, and a horizontally-scrollable step indicator (completed=emerald check, current=emerald filled, future=muted; completed steps clickable to jump back). View root is `flex flex-1 flex-col` with SiteFooter (mt-auto) for the sticky footer.
+- Step 1: title (required) + description textarea; format selector (Markdown/CSV/JSON) using aria-pressed toggle buttons; "Load sample" injects the matching SAMPLE_*; monospace content textarea; emerald "Run dry run" → POST /api/admin/tests/dry-run; results show "✓ N valid / ✗ M errors" badges, a max-h-72 scrollable errors table (Row|Excerpt|Error, destructive text, custom scrollbar), a green Alert + "Import N valid questions" button, and a post-import success Alert with "Re-run". Next is disabled (tooltip "Import at least one question first") until imported.length>0; Cancel → navigate('admin').
+- Step 2: schedule (two datetime-local + timezone "Asia/Karachi" default), optional time-limit, marking (positiveMarks=1 / negativeMarks=0), maxAttempts=1, results RadioGroup (Immediate/Manual) as selectable cards. All inputs keep string state; conversion happens on submit.
+- Step 3: RadioGroup of 4 access modes as card rows (Globe/Lock/Users/Ticket icons); selecting CODE reveals accessCode input, WHITELIST reveals a phone-number textarea with a live count badge, INVITE reveals an inviteCount number input + note. Next always enabled (validation deferred to create).
+- Step 4: review summary (title, description, question count badge, schedule, time limit, marking, max attempts, result mode, access mode + mode-specific detail), "Publish immediately" Switch, emerald Create button. handleCreate builds the body exactly per the contract (ISO datetimes via new Date(str).toISOString(), Number() conversions with safe fallbacks, whitelist split/trim/filter, inviteCount only for INVITE) and POSTs /api/admin/tests; on 400 toasts the server message, on 401 redirects to login. On success swaps to a SuccessScreen (CheckCircle2, copyable `/?t=<shareableLink>` field, scrollable max-h-64 list of `/?invite=<token>` links each with its own copy button, "Go to dashboard" + "Create another" which resets all state).
+- Polished: emerald accents only (no indigo/blue), mobile-first (375px tested mentally — step indicator scrolls, grids collapse), clipboard via navigator.clipboard with sonner toasts, window.location.origin tracked in state to avoid hydration mismatch on the success links.
+
+Stage Summary:
+- One file delivered: src/components/app/views/create-test-view.tsx (~1684 lines, single export CreateTestView). Did NOT touch app-shell.tsx/router/dashboard — orchestrator to wire `?view=create` → <CreateTestView/> in AppShell's ViewSwitch.
+- Assumptions: (1) ParseError type intentionally NOT imported (unused → would trip no-unused-vars); DryRunResult/ParseFormat/ParsedQuestion imported and used. (2) "Cancel" rendered as a ghost Button (functionally a link) rather than an <a>. (3) Create button is full-width on mobile, auto-width right-aligned on sm+ for natural Back/Next pairing. (4) Editing the import textarea clears the stale dry-run result but preserves a committed `imported` set until the next dry run re-commits (safe + avoids losing work on stray keystrokes). (5) Access-mode conditional inputs live inside each option's label card (clicking a nested form control does not toggle the radio per HTML spec). (6) Did not run lint/dev per instructions; API contracts coded verbatim (dry-run + create).
+- The orchestrator still needs to: add `case 'create': content = <CreateTestView />` to app-shell.tsx ViewSwitch, and implement the two backend routes (POST /api/admin/tests/dry-run, POST /api/admin/tests) to match the contracts above.
+
+---
+Task ID: 7
+Agent: orchestrator (main)
+Task: Phase 2 — Create Test wizard + Dry-Run import engine (CSV/JSON/MD) with error reporting; wire into dashboard; end-to-end verification.
+
+Work Log:
+- Schema: added Invitation model (single-use tokens for INVITE mode) + extended accessMode to PUBLIC|CODE|WHITELIST|INVITE. db:push synced.
+- Backend parser: src/lib/question-parser.ts — dryRunParse(format, content) supporting JSON (array of objects), CSV (RFC-4180 quoted fields, semicolon-separated options/answers), Markdown (### headers, - [ ]/- [x] MCQ options, type:/answer:/marks:/neg: directives). Validates every row: non-empty questionText, MCQ needs ≥2 options + valid correct indices, TEXT needs ≥1 answer, marks ≥0. Returns {valid, errors:[{row,excerpt,error}], total}. Includes SAMPLE_CSV/JSON/MD with a deliberate broken row.
+- Backend routes: POST /api/admin/tests/dry-run (admin-guarded, Zod, returns DryRunResult), POST /api/admin/tests (admin-guarded, Zod, creates test+questions+whitelist/invitations, nanoid(12) shareable link, nanoid(16) invite tokens, mode-specific validation, returns {id, shareableLink, questionCount, isPublished, inviteLinks?}).
+- Frontend: delegated 4-step wizard to subagent (Task 6) → create-test-view.tsx. Wired: router 'create' view, app-shell switch, dashboard both Create Test buttons now navigate('create').
+- Fixed: EmptyTestsState needed useViewRouter() hook for navigate.
+
+Stage Summary:
+- Full create-test flow works end-to-end. Agent-browser verified: login → dashboard → Create Test → wizard step 1 (load MD sample → dry run: 3 valid / 1 error "Missing correct_answers array" in error table → import 3) → step 2 settings → step 3 access control (4 modes) → step 4 review+publish → "Publish test" → success screen with copyable link /?t=pqMG_dYE4KkX → dashboard shows new "Phase 2 Demo Quiz" (3 tests total) → link opens participant landing. Lint clean, no runtime errors.
+- The 4 hybrid access modes are wired in the wizard (Public/Password/Whitelist/Invitation). Participant-side handling of password/invite flows lands in Phase 4 (the landing currently shows phone-verify for all modes; will be made mode-aware). Whitelist + Public already work end-to-end.
+- Questions saved to DB with order, type, options (JSON), correctAnswers (JSON), per-question marks. Ready for Phase 4 grading.

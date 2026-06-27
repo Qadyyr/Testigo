@@ -311,6 +311,7 @@ function ErrorState({
 }
 
 function EmptyTestsState() {
+  const { navigate } = useViewRouter()
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
       <span className="flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
@@ -325,7 +326,7 @@ function EmptyTestsState() {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => toast.message('Test creation wizard arrives in Phase 2.')}
+        onClick={() => navigate('create')}
         className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
       >
         <Plus className="size-4" />
@@ -439,9 +440,7 @@ function DashboardContent({
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                toast.message('Test creation wizard arrives in Phase 2.')
-              }
+              onClick={() => navigate('create')}
               className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
             >
               <Plus className="size-4" />
