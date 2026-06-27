@@ -79,3 +79,18 @@ Stage Summary:
 - Landing is GitHub-style: minimal, emerald accents, monospace terminal accent, no core-logic exposure. Footer still sticky (unchanged from Phase 1).
 - Agent-browser verified: home lookup (multi→code→navigate), participant verify (allowed + denied), no-tests-found, admin login → dashboard shows 2 Whitelist tests, mobile (375px) responsive.
 - Backward compat note: Test.accessMode still has PUBLIC/CODE/WHITELIST in schema for flexibility, but the app now only creates/uses WHITELIST. The dashboard badge + API still handle all three values gracefully.
+
+---
+Task ID: 4
+Agent: orchestrator (main)
+Task: Switch participant access from "email or phone" single field to PHONE-ONLY across home, participant landing, and all backend APIs; re-seed phone-only whitelists.
+
+Work Log:
+- Backend: rewrote /api/tests/lookup, /api/tests/resolve, /api/tests/[link]/verify — Zod schema now requires `phone` (min 7), removed email branch; queries use `whitelists: { some: { phone: phoneNorm } }`; removed unused normalizeEmail import.
+- Seed: student whitelist entries now phone-only (upsert by testId_phone, email omitted); added `deleteMany({})` before re-seed for idempotency; confirmed SQL INSERT has no email column.
+- Frontend home-view: removed splitIdentity helper; state identity→phone; input type=tel autoComplete=tel placeholder "+92 300 1234567"; payload {phone}; sessionStorage key 'omnitest:phone'; copy updated ("phone number" everywhere); terminal accent line "phone registered ✓".
+- Frontend participant-test-view: removed splitIdentity; TestDetails props identity→phone/setPhone; input type=tel; sessionStorage read 'omnitest:phone'; denied message "This phone number isn't on the test's access list"; copy updated.
+
+Stage Summary:
+- Participant access is now phone-only end-to-end. Demo phone: +923001234567 (whitelisted on demo123/GK2024 + demo456/APT2024). Agent-browser verified: home phone lookup → 2 tests → code GK2024 → landing with phone prefilled → Verify access → "Access verified" + Start Test; unregistered phone → "Not registered". Lint clean, no runtime errors.
+- Schema unchanged (email column remains on Whitelist for future use, nullable). normalizeEmail kept exported in lib/api.ts for later. Email is simply unused in the participant flow for now.

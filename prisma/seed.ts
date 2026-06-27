@@ -11,7 +11,7 @@
  *   - SUPER_ADMIN: admin@omnitest.test / admin1234
  *   - Test A: "Sample General Knowledge Quiz"  link=demo123  code=GK2024
  *   - Test B: "Sample Aptitude Assessment"     link=demo456  code=APT2024
- *   - Whitelist: student@omnitest.test / +923001234567 on BOTH tests
+ *   - Whitelist: +923001234567 on BOTH tests
  *     (so the multi-test → code path is demonstrable)
  */
 import bcrypt from 'bcryptjs'
@@ -33,9 +33,11 @@ async function main() {
     },
   })
 
-  // Shared participant identity, registered on both tests.
-  const studentEmail = 'student@omnitest.test'
+  // Shared participant identity (phone-only), registered on both tests.
   const studentPhone = '+923001234567'
+
+  // Clear stale whitelist rows so re-seeding stays phone-only & idempotent.
+  await db.whitelist.deleteMany({})
 
   const tests = [
     {
@@ -90,15 +92,14 @@ async function main() {
       },
     })
 
-    // Whitelist the shared student on this test (compound unique: testId+email).
+    // Whitelist the shared student on this test (phone-only; compound unique testId+phone).
     await db.whitelist.upsert({
       where: {
-        testId_email: { testId: test.id, email: studentEmail },
+        testId_phone: { testId: test.id, phone: studentPhone },
       },
-      update: { phone: studentPhone },
+      update: {},
       create: {
         testId: test.id,
-        email: studentEmail,
         phone: studentPhone,
       },
     })
@@ -106,10 +107,8 @@ async function main() {
 
   console.log('✅ Seed complete.')
   console.log('   Admin:        ', email, '/', password)
-  console.log('   Student:      ', studentEmail, '/', studentPhone)
   console.log('   Tests:        demo123 (code GK2024), demo456 (code APT2024)')
-  console.log('   Single-test demo:  enter student email → proceeds to one?')
-  console.log('                       (here: 2 tests → code step)')
+  console.log('   Student phone:', studentPhone, '→ 2 tests (code step)')
 }
 
 main()

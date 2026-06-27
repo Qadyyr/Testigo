@@ -76,20 +76,13 @@ function ThemeToggle() {
   )
 }
 
-/** Treat the value as an email if it contains '@', otherwise as a phone. */
-function splitIdentity(raw: string): { email?: string; phone?: string } {
-  const v = raw.trim()
-  if (!v) return {}
-  return v.includes('@') ? { email: v } : { phone: v }
-}
-
 // ---- terminal accent (decorative, tech feel) ------------------------------
 
 function TerminalAccent() {
   const reduceMotion = useReducedMotion()
   const lines = [
     { p: '$', t: 'omnitest identify', c: 'text-foreground' },
-    { p: '↳', t: 'email or phone registered ✓', c: 'text-emerald-600 dark:text-emerald-400' },
+    { p: '↳', t: 'phone registered ✓', c: 'text-emerald-600 dark:text-emerald-400' },
     { p: '$', t: 'omnitest tests', c: 'text-foreground' },
     { p: '↳', t: '2 tests found for you', c: 'text-muted-foreground' },
     { p: '$', t: 'omnitest start --code GK2024', c: 'text-foreground' },
@@ -150,16 +143,16 @@ export function HomeView() {
   const { navigate } = useViewRouter()
   const reduceMotion = useReducedMotion()
 
-  const [identity, setIdentity] = useState('')
+  const [phone, setPhone] = useState('')
   const [step, setStep] = useState<Step>({ name: 'entry' })
   const [code, setCode] = useState('')
   const [resolving, setResolving] = useState(false)
 
   async function handleLookup(e: FormEvent) {
     e.preventDefault()
-    const payload = splitIdentity(identity)
-    if (!payload.email && !payload.phone) {
-      toast.error('Enter your registered email or phone.')
+    const p = phone.trim()
+    if (!p) {
+      toast.error('Enter your registered phone number.')
       return
     }
     setStep({ name: 'looking' })
@@ -167,16 +160,16 @@ export function HomeView() {
       const res = await fetch('/api/tests/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ phone: p }),
       })
       const json: ApiEnvelope<LookupResponse> = await res.json()
       if (!res.ok || !json.success || !json.data) {
         throw new Error(json.message || 'Lookup failed')
       }
       const { count, tests } = json.data
-      // Remember identity for the landing page to prefill (ephemeral, per-tab).
+      // Remember phone for the landing page to prefill (ephemeral, per-tab).
       try {
-        sessionStorage.setItem('omnitest:identity', identity.trim())
+        sessionStorage.setItem('omnitest:phone', p)
       } catch {
         /* sessionStorage may be unavailable; non-fatal */
       }
@@ -197,9 +190,9 @@ export function HomeView() {
 
   async function handleResolve(e: FormEvent) {
     e.preventDefault()
-    const payload = splitIdentity(identity)
-    if (!payload.email && !payload.phone) {
-      toast.error('Enter your registered email or phone.')
+    const p = phone.trim()
+    if (!p) {
+      toast.error('Enter your registered phone number.')
       return
     }
     if (!code.trim()) {
@@ -211,7 +204,7 @@ export function HomeView() {
       const res = await fetch('/api/tests/resolve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, code: code.trim() }),
+        body: JSON.stringify({ phone: p, code: code.trim() }),
       })
       const json: ApiEnvelope<ResolveResponse> = await res.json()
       if (!res.ok || !json.success || !json.data) {
@@ -293,7 +286,7 @@ export function HomeView() {
             {...fade(0.08)}
             className="max-w-md text-base text-muted-foreground text-pretty sm:text-lg"
           >
-            Enter the email or phone your administrator registered. We&apos;ll
+            Enter the phone number your administrator registered. We&apos;ll
             open the tests assigned to you — nothing else.
           </motion.p>
 
@@ -304,22 +297,22 @@ export function HomeView() {
                 <CardHeader className="gap-1.5">
                   <CardTitle className="text-base">Access your tests</CardTitle>
                   <CardDescription>
-                    Use the email or phone your admin added to the test.
+                    Use the phone number your admin added to the test.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleLookup} className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="identity" className="text-xs">
-                        Email or phone
+                      <Label htmlFor="phone" className="text-xs">
+                        Phone number
                       </Label>
                       <Input
-                        id="identity"
-                        type="text"
-                        autoComplete="username"
-                        placeholder="you@example.com  ·  +92 300 1234567"
-                        value={identity}
-                        onChange={(e) => setIdentity(e.target.value)}
+                        id="phone"
+                        type="tel"
+                        autoComplete="tel"
+                        placeholder="+92 300 1234567"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
                       />
                     </div>
                     <Button
@@ -408,7 +401,7 @@ export function HomeView() {
                     onClick={reset}
                     className="self-start text-xs text-muted-foreground underline-offset-4 hover:underline"
                   >
-                    Use a different email or phone
+                    Use a different phone number
                   </button>
                 </CardContent>
               </Card>
@@ -421,7 +414,7 @@ export function HomeView() {
                   <CardDescription>
                     We couldn&apos;t find any tests registered for{' '}
                     <span className="font-medium text-foreground">
-                      {identity}
+                      {phone}
                     </span>
                     . Contact your administrator if this seems wrong.
                   </CardDescription>

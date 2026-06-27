@@ -89,13 +89,6 @@ function formatInTz(iso: string, tz: string | null): string {
   }
 }
 
-/** Treat the value as an email if it contains '@', otherwise as a phone. */
-function splitIdentity(raw: string): { email?: string; phone?: string } {
-  const v = raw.trim()
-  if (!v) return {}
-  return v.includes('@') ? { email: v } : { phone: v }
-}
-
 // ---- states ----------------------------------------------------------------
 
 function TestSkeleton() {
@@ -176,15 +169,15 @@ type DetailIcon = React.ComponentType<{ className?: string }>
 function TestDetails({
   test,
   accessStep,
-  identity,
-  setIdentity,
+  phone,
+  setPhone,
   onVerify,
   onStart,
 }: {
   test: ParticipantTest
   accessStep: AccessStep
-  identity: string
-  setIdentity: (v: string) => void
+  phone: string
+  setPhone: (v: string) => void
   onVerify: (e: FormEvent) => void
   onStart: () => void
 }) {
@@ -327,8 +320,7 @@ function TestDetails({
         <CardHeader className="gap-1.5">
           <CardTitle className="text-base">Verify your access</CardTitle>
           <CardDescription>
-            Enter the email or phone your administrator registered for this
-            test.
+            Enter the phone number your administrator registered for this test.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -336,15 +328,15 @@ function TestDetails({
             <form onSubmit={onVerify} className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="identity" className="text-xs">
-                  Email or phone
+                  Phone number
                 </Label>
                 <Input
                   id="identity"
-                  type="text"
-                  autoComplete="username"
-                  placeholder="you@example.com  ·  +92 300 1234567"
-                  value={identity}
-                  onChange={(e) => setIdentity(e.target.value)}
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="+92 300 1234567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   disabled={accessStep.name === 'verifying'}
                 />
               </div>
@@ -376,7 +368,7 @@ function TestDetails({
                   Not registered for this test
                 </span>
                 <span className="text-muted-foreground">
-                  This identity isn&apos;t on the test&apos;s access list.
+                  This phone number isn&apos;t on the test&apos;s access list.
                   Contact your administrator if this seems wrong.
                 </span>
               </div>
@@ -426,17 +418,17 @@ export function ParticipantTestView() {
   const [retryKey, setRetryKey] = useState(0)
 
   // Access-flow state.
-  const [identity, setIdentity] = useState('')
+  const [phone, setPhone] = useState('')
   const [accessStep, setAccessStep] = useState<AccessStep>({ name: 'idle' })
 
   const navigateRef = useRef(navigate)
   navigateRef.current = navigate
 
-  // Prefill identity from the home lookup (ephemeral, per-tab) if present.
+  // Prefill phone from the home lookup (ephemeral, per-tab) if present.
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem('omnitest:identity')
-      if (saved) setIdentity(saved)
+      const saved = sessionStorage.getItem('omnitest:phone')
+      if (saved) setPhone(saved)
     } catch {
       /* non-fatal */
     }
@@ -487,9 +479,9 @@ export function ParticipantTestView() {
 
   async function handleVerify(e: FormEvent) {
     e.preventDefault()
-    const payload = splitIdentity(identity)
-    if (!payload.email && !payload.phone) {
-      toast.error('Enter your registered email or phone.')
+    const p = phone.trim()
+    if (!p) {
+      toast.error('Enter your registered phone number.')
       return
     }
     setAccessStep({ name: 'verifying' })
@@ -499,7 +491,7 @@ export function ParticipantTestView() {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ phone: p }),
         }
       )
       const json: ApiEnvelope<VerifyResponse> = await res.json()
@@ -557,8 +549,8 @@ export function ParticipantTestView() {
           <TestDetails
             test={loadState.data}
             accessStep={accessStep}
-            identity={identity}
-            setIdentity={setIdentity}
+            phone={phone}
+            setPhone={setPhone}
             onVerify={handleVerify}
             onStart={handleStart}
           />

@@ -1,26 +1,21 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
-import { ok, fail, normalizeEmail, normalizePhone } from '@/lib/api'
+import { ok, fail, normalizePhone } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
-const bodySchema = z
-  .object({
-    email: z.string().email().optional(),
-    phone: z.string().min(5).optional(),
-  })
-  .refine((d) => d.email || d.phone, {
-    message: 'Email or phone is required',
-  })
+const bodySchema = z.object({
+  phone: z.string().min(7, 'Enter a valid phone number'),
+})
 
 /**
  * POST /api/tests/{link}/verify
- * Checks whether a given email/phone is whitelisted for THIS specific test.
+ * Checks whether a given phone number is whitelisted for THIS specific test.
  * Used on the participant landing page before allowing a start. (Phase 4 will
  * layer OTP verification on top of this whitelist check.)
  *
- * Body: { email?: string, phone?: string }
+ * Body: { phone: string }
  * 200: { success, data: { allowed: boolean } }
  * 404: test not found
  */
@@ -44,17 +39,12 @@ export async function POST(
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? 'Invalid input', 400)
     }
-    const { email, phone } = parsed.data
-    const emailLower = email ? normalizeEmail(email) : undefined
-    const phoneNorm = phone ? normalizePhone(phone) : undefined
+    const phoneNorm = normalizePhone(parsed.data.phone)
 
     const entry = await db.whitelist.findFirst({
       where: {
         testId: test.id,
-        OR: [
-          ...(emailLower ? [{ email: emailLower }] : []),
-          ...(phoneNorm ? [{ phone: phoneNorm }] : []),
-        ],
+        phone: phoneNorm,
       },
       select: { id: true },
     })
