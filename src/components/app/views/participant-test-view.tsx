@@ -1,24 +1,25 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarClock,
+  CheckCircle2,
   Clock,
-  Globe,
-  KeyRound,
-  ListChecks,
-  Lock,
+  Loader2,
   Play,
   RefreshCw,
   ShieldAlert,
   Timer,
-  Trophy,
   Users,
+  XCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Card,
   CardContent,
@@ -33,7 +34,7 @@ import { Brand } from '../brand'
 import { SiteFooter } from '../site-footer'
 import { useViewRouter } from '../use-view-router'
 
-// ---- API contract (mirror Task 1's /api/tests/{token}) ---------------------
+// ---- API contract (mirror /api/tests/{link} + /verify) ---------------------
 
 interface ParticipantTest {
   id: string
@@ -51,8 +52,10 @@ interface ParticipantTest {
   scheduledOpen: boolean
   scheduledClosed: boolean
 }
-
-interface ApiResponse<T> {
+interface VerifyResponse {
+  allowed: boolean
+}
+interface ApiEnvelope<T> {
   success: boolean
   message?: string
   data?: T
@@ -64,50 +67,42 @@ type LoadState =
   | { status: 'error'; message: string }
   | { status: 'ok'; data: ParticipantTest }
 
-// ---- Helpers ---------------------------------------------------------------
+// Participant-facing access flow states.
+type AccessStep =
+  | { name: 'idle' }
+  | { name: 'verifying' }
+  | { name: 'allowed' }
+  | { name: 'denied' }
+
+// ---- helpers ---------------------------------------------------------------
 
 function formatInTz(iso: string, tz: string | null): string {
   try {
     const d = new Date(iso)
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat('en-US', {
       dateStyle: 'medium',
       timeStyle: 'short',
       timeZone: tz || undefined,
-    })
-    return formatter.format(d)
+    }).format(d)
   } catch {
     return iso
   }
 }
 
-function accessLabel(mode: ParticipantTest['accessMode']): string {
-  switch (mode) {
-    case 'PUBLIC':
-      return 'Public — anyone with the link'
-    case 'CODE':
-      return 'Access code required'
-    case 'WHITELIST':
-      return 'Whitelist — invited participants only'
-  }
+/** Treat the value as an email if it contains '@', otherwise as a phone. */
+function splitIdentity(raw: string): { email?: string; phone?: string } {
+  const v = raw.trim()
+  if (!v) return {}
+  return v.includes('@') ? { email: v } : { phone: v }
 }
 
-function accessIcon(mode: ParticipantTest['accessMode']) {
-  if (mode === 'PUBLIC') return Globe
-  if (mode === 'CODE') return KeyRound
-  return Lock
-}
-
-// ---- States ----------------------------------------------------------------
+// ---- states ----------------------------------------------------------------
 
 function TestSkeleton() {
   return (
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader className="gap-3">
-          <div className="flex gap-2">
-            <Skeleton className="h-5 w-20" />
-            <Skeleton className="h-5 w-24" />
-          </div>
           <Skeleton className="h-7 w-3/4" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-2/3" />
@@ -118,12 +113,11 @@ function TestSkeleton() {
           <Skeleton className="h-5 w-32" />
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-5 w-full" />
           ))}
         </CardContent>
       </Card>
-      <Skeleton className="h-12 w-full rounded-md" />
     </div>
   )
 }
@@ -179,7 +173,21 @@ function ErrorState({
 
 type DetailIcon = React.ComponentType<{ className?: string }>
 
-function TestDetails({ test }: { test: ParticipantTest }) {
+function TestDetails({
+  test,
+  accessStep,
+  identity,
+  setIdentity,
+  onVerify,
+  onStart,
+}: {
+  test: ParticipantTest
+  accessStep: AccessStep
+  identity: string
+  setIdentity: (v: string) => void
+  onVerify: (e: FormEvent) => void
+  onStart: () => void
+}) {
   const reduceMotion = useReducedMotion()
 
   const scheduleText =
@@ -204,33 +212,17 @@ function TestDetails({ test }: { test: ParticipantTest }) {
     </Badge>
   )
 
-  const startDisabled = test.scheduledClosed || !test.scheduledOpen
-  const startLabel = test.scheduledClosed
-    ? 'Test closed'
-    : !test.scheduledOpen
-      ? 'Not yet open'
-      : 'Start Test'
-  const StartIcon = startDisabled ? Lock : Play
+  const scheduleBlocksStart = test.scheduledOpen && !test.scheduledClosed
 
-  function handleStart() {
-    toast.message('Test-taking flow arrives in Phase 4.')
-  }
-
+  // Benign, participant-facing rules only. No anti-cheat internals, no
+  // result-release mechanics — those are not the participant's concern.
   const rules = [
-    'Your progress auto-saves every 10 seconds.',
-    'If you lose connection, refresh the page — your answers and timer are recovered from the server.',
-    'Tab-switching is monitored. After 3 switches your test is auto-submitted.',
-    'The timer is validated on the server, not just your browser.',
-    'Results are released per the test setting (immediate or manual).',
+    'Ensure you have a stable internet connection before starting.',
+    'Once started, complete the test within the time limit shown.',
+    `You can attempt this test ${test.maxAttempts > 0 ? `${test.maxAttempts} time${test.maxAttempts > 1 ? 's' : ''}` : 'multiple times'}.`,
   ]
 
-  const AccessIcon: DetailIcon = accessIcon(test.accessMode)
-
-  const details: Array<{
-    icon: DetailIcon
-    label: string
-    value: React.ReactNode
-  }> = [
+  const details: Array<{ icon: DetailIcon; label: string; value: React.ReactNode }> = [
     {
       icon: CalendarClock,
       label: 'Schedule',
@@ -251,24 +243,12 @@ function TestDetails({ test }: { test: ParticipantTest }) {
         : 'No limit',
     },
     {
-      icon: AccessIcon,
-      label: 'Access',
-      value: accessLabel(test.accessMode),
-    },
-    {
       icon: Users,
       label: 'Max Attempts',
-      value: test.maxAttempts > 0
-        ? `${test.maxAttempts} per participant`
-        : 'Unlimited',
-    },
-    {
-      icon: Trophy,
-      label: 'Results',
       value:
-        test.resultReleaseMode === 'IMMEDIATE'
-          ? 'Released immediately on submit'
-          : 'Released manually by admin',
+        test.maxAttempts > 0
+          ? `${test.maxAttempts} per participant`
+          : 'Unlimited',
     },
   ]
 
@@ -279,35 +259,10 @@ function TestDetails({ test }: { test: ParticipantTest }) {
       transition={{ duration: 0.25, ease: 'easeOut' }}
       className="flex flex-col gap-4"
     >
-      {/* Header card */}
+      {/* Header */}
       <Card>
         <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              variant="outline"
-              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-            >
-              {test.accessMode === 'PUBLIC'
-                ? 'Public'
-                : test.accessMode === 'CODE'
-                  ? 'Code'
-                  : 'Whitelist'}
-            </Badge>
-            <Badge variant="outline" className="gap-1">
-              {test.resultReleaseMode === 'IMMEDIATE' ? (
-                <>
-                  <Trophy className="size-3" />
-                  Instant results
-                </>
-              ) : (
-                <>
-                  <Clock className="size-3" />
-                  Manual results
-                </>
-              )}
-            </Badge>
-            {statusBadge}
-          </div>
+          <div className="flex flex-wrap items-center gap-2">{statusBadge}</div>
           <CardTitle className="text-balance text-2xl sm:text-3xl">
             {test.title}
           </CardTitle>
@@ -319,7 +274,7 @@ function TestDetails({ test }: { test: ParticipantTest }) {
         </CardHeader>
       </Card>
 
-      {/* Details card */}
+      {/* Details */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Test details</CardTitle>
@@ -344,12 +299,12 @@ function TestDetails({ test }: { test: ParticipantTest }) {
         </CardContent>
       </Card>
 
-      {/* Rules card */}
+      {/* Rules (benign, participant-facing only) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <ListChecks className="size-4 text-emerald-600" />
-            Rules
+            <Clock className="size-4 text-emerald-600" />
+            Before you start
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -367,26 +322,102 @@ function TestDetails({ test }: { test: ParticipantTest }) {
         </CardContent>
       </Card>
 
-      {/* Start button */}
-      <div className="flex flex-col gap-2">
-        <Button
-          size="lg"
-          onClick={handleStart}
-          disabled={startDisabled}
-          className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
-        >
-          <StartIcon className="size-4" />
-          {startLabel}
-        </Button>
-        <p className="text-center text-xs text-muted-foreground">
-          By starting, you agree to follow the test rules above.
-        </p>
-      </div>
+      {/* Access verification (whitelist gate; OTP lands in Phase 4) */}
+      <Card>
+        <CardHeader className="gap-1.5">
+          <CardTitle className="text-base">Verify your access</CardTitle>
+          <CardDescription>
+            Enter the email or phone your administrator registered for this
+            test.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {accessStep.name !== 'allowed' && (
+            <form onSubmit={onVerify} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="identity" className="text-xs">
+                  Email or phone
+                </Label>
+                <Input
+                  id="identity"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="you@example.com  ·  +92 300 1234567"
+                  value={identity}
+                  onChange={(e) => setIdentity(e.target.value)}
+                  disabled={accessStep.name === 'verifying'}
+                />
+              </div>
+              <Button
+                type="submit"
+                disabled={accessStep.name === 'verifying'}
+                className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+              >
+                {accessStep.name === 'verifying' ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Verifying…
+                  </>
+                ) : (
+                  <>
+                    Verify access
+                    <ArrowRight className="size-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+          )}
+
+          {accessStep.name === 'denied' && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+              <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+              <div className="flex flex-col gap-1">
+                <span className="font-medium text-destructive">
+                  Not registered for this test
+                </span>
+                <span className="text-muted-foreground">
+                  This identity isn&apos;t on the test&apos;s access list.
+                  Contact your administrator if this seems wrong.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {accessStep.name === 'allowed' && (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium text-emerald-700 dark:text-emerald-300">
+                    Access verified
+                  </span>
+                  <span className="text-muted-foreground">
+                    You&apos;re cleared to start. Good luck!
+                  </span>
+                </div>
+              </div>
+              <Button
+                size="lg"
+                onClick={onStart}
+                disabled={!scheduleBlocksStart}
+                className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+              >
+                <Play className="size-4" />
+                {test.scheduledClosed
+                  ? 'Test closed'
+                  : !test.scheduledOpen
+                    ? 'Not yet open'
+                    : 'Start Test'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   )
 }
 
-// ---- Main view -------------------------------------------------------------
+// ---- main view -------------------------------------------------------------
 
 export function ParticipantTestView() {
   const { params, navigate } = useViewRouter()
@@ -394,9 +425,24 @@ export function ParticipantTestView() {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
   const [retryKey, setRetryKey] = useState(0)
 
+  // Access-flow state.
+  const [identity, setIdentity] = useState('')
+  const [accessStep, setAccessStep] = useState<AccessStep>({ name: 'idle' })
+
   const navigateRef = useRef(navigate)
   navigateRef.current = navigate
 
+  // Prefill identity from the home lookup (ephemeral, per-tab) if present.
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('omnitest:identity')
+      if (saved) setIdentity(saved)
+    } catch {
+      /* non-fatal */
+    }
+  }, [])
+
+  // Load the test by token.
   useEffect(() => {
     if (!token) {
       setLoadState({ status: 'not-found' })
@@ -407,19 +453,16 @@ export function ParticipantTestView() {
 
     async function load() {
       try {
-        const res = await fetch(
-          `/api/tests/${encodeURIComponent(token)}`,
-          { credentials: 'include' }
-        )
+        const res = await fetch(`/api/tests/${encodeURIComponent(token)}`, {
+          credentials: 'include',
+        })
         if (cancelled) return
         if (res.status === 404) {
           setLoadState({ status: 'not-found' })
           return
         }
-        if (!res.ok) {
-          throw new Error(`Request failed (${res.status})`)
-        }
-        const json: ApiResponse<ParticipantTest> = await res.json()
+        if (!res.ok) throw new Error(`Request failed (${res.status})`)
+        const json: ApiEnvelope<ParticipantTest> = await res.json()
         if (cancelled) return
         if (json.success && json.data) {
           setLoadState({ status: 'ok', data: json.data })
@@ -441,6 +484,39 @@ export function ParticipantTestView() {
       cancelled = true
     }
   }, [token, retryKey])
+
+  async function handleVerify(e: FormEvent) {
+    e.preventDefault()
+    const payload = splitIdentity(identity)
+    if (!payload.email && !payload.phone) {
+      toast.error('Enter your registered email or phone.')
+      return
+    }
+    setAccessStep({ name: 'verifying' })
+    try {
+      const res = await fetch(
+        `/api/tests/${encodeURIComponent(token)}/verify`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      )
+      const json: ApiEnvelope<VerifyResponse> = await res.json()
+      if (!res.ok || !json.success || !json.data) {
+        throw new Error(json.message || 'Verification failed')
+      }
+      setAccessStep({ name: json.data.allowed ? 'allowed' : 'denied' })
+    } catch {
+      toast.error('Could not verify access. Try again.')
+      setAccessStep({ name: 'idle' })
+    }
+  }
+
+  function handleStart() {
+    // OTP verification + attempt creation arrive in Phase 4.
+    toast.message('Test-taking flow arrives in Phase 4.')
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -477,7 +553,16 @@ export function ParticipantTestView() {
             onRetry={() => setRetryKey((k) => k + 1)}
           />
         )}
-        {loadState.status === 'ok' && <TestDetails test={loadState.data} />}
+        {loadState.status === 'ok' && (
+          <TestDetails
+            test={loadState.data}
+            accessStep={accessStep}
+            identity={identity}
+            setIdentity={setIdentity}
+            onVerify={handleVerify}
+            onStart={handleStart}
+          />
+        )}
       </main>
 
       <SiteFooter />

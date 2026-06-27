@@ -61,3 +61,21 @@ Work Log:
 Stage Summary:
 - All 9 frontend files created against the agreed API contracts (GET /api/admin/stats, GET /api/tests/{token}). No mock data in dashboard/participant views. Emerald accents, no indigo/blue, sticky footer on every view, mobile-first responsive.
 - Orchestrator post-fixes applied after subagent turn-limit: (a) set-state-in-effect lint rule on next-themes hydration gate (added scoped eslint-disable in home + admin views), (b) removed 2 unused eslint-disable directives, (c) admin guard + /api/admin/stats now accept SUPER_ADMIN as well as ADMIN.
+
+---
+Task ID: 3
+Agent: orchestrator (main)
+Task: Refinements to Phase 1 — (1) remove "built to scale" copy; (2) redesign landing page GitHub-style (professional, tech, interactive, simple); (3) rework access model: students access tests ONLY via registered email/phone, enter a per-test code when registered for >1 test; (4) remove core-logic mentions (result mode, anti-cheat) from the participant landing.
+
+Work Log:
+- New access model (whitelist-only). Added backend: src/lib/api.ts (ok/fail/normalize helpers); POST /api/tests/lookup (email|phone → published, open, whitelisted tests); POST /api/tests/resolve (email|phone + code → shareableLink, matched only against the caller's whitelisted tests); POST /api/tests/[link]/verify (email|phone → {allowed} for a specific test). All Zod-validated, try/catch, standardized {success,message,data}.
+- Updated prisma/seed.ts: 2 WHITELIST tests (demo123/GK2024 "Sample General Knowledge Quiz", demo456/APT2024 "Sample Aptitude Assessment") + shared student (student@omnitest.test / +923001234567) whitelisted on BOTH → demonstrates multi-test → code path. Fixed testId FK bug (use upsert-returned test.id, not the shareable token).
+- Redesigned home-view.tsx (GitHub-style): clean top nav (brand + theme toggle + subtle "Admin" link), two-column hero (left: headline "Tests, without the friction." + email/phone entry card; right: decorative terminal accent with staggered line reveal + blinking cursor, desktop only). Removed "built to scale" line and the 3 core-logic feature cards. State machine: entry → looking → multiple(code) / none / error. sessionStorage('omnitest:identity') set on lookup so the landing prefills.
+- Rewrote participant-test-view.tsx: removed result-mode badges + "Results" detail row; replaced anti-cheat/auto-save/server-timer rules with benign "Before you start" rules; added "Verify your access" card (email/phone → POST /verify → allowed shows Start Test, denied shows clear message). Reads sessionStorage to prefill identity. Start button still gated on schedule (Open/Not yet open/Closed) and Phase-4 toast.
+- Lint clean. Dev server HTTP 200 on / and /?t=demo123. No runtime errors.
+
+Stage Summary:
+- Access model is now whitelist-only with code disambiguation for multi-test participants. Demo: enter student@omnitest.test on home → 2 tests found → enter GK2024 (or APT2024) → lands on demo123 (or demo456) → email prefilled → Verify access → Start. Unregistered emails denied on both home lookup ("No tests found") and landing verify ("Not registered").
+- Landing is GitHub-style: minimal, emerald accents, monospace terminal accent, no core-logic exposure. Footer still sticky (unchanged from Phase 1).
+- Agent-browser verified: home lookup (multi→code→navigate), participant verify (allowed + denied), no-tests-found, admin login → dashboard shows 2 Whitelist tests, mobile (375px) responsive.
+- Backward compat note: Test.accessMode still has PUBLIC/CODE/WHITELIST in schema for flexibility, but the app now only creates/uses WHITELIST. The dashboard badge + API still handle all three values gracefully.
