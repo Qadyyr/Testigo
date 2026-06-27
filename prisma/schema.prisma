@@ -1,0 +1,188 @@
+// OmniTest Engine — Prisma schema
+// DB: SQLite (sandbox). Designed so a Postgres/Supabase migration is trivial:
+//   - switch `provider` to "postgresql"
+//   - convert the String "enum" fields below to native `enum` types
+//   - Json fields work natively on Postgres too
+// All "enum-ish" fields are String here (SQLite has no Prisma enums).
+// Allowed values are documented inline and enforced with Zod in the API layer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Admin — the only authenticated user type. Participants never have accounts.
+// `role` ∈ { "ADMIN", "SUPER_ADMIN" }
+// ---------------------------------------------------------------------------
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         String   @default("ADMIN") // ADMIN | SUPER_ADMIN
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tests Test[]
+}
+
+// ---------------------------------------------------------------------------
+// Test — a single exam/survey.
+// `accessMode`        ∈ { "PUBLIC", "CODE", "WHITELIST" }
+// `resultReleaseMode` ∈ { "IMMEDIATE", "MANUAL" }
+// `shareableLink`     — unguessable nanoid token used in `/?t=<token>`.
+// ---------------------------------------------------------------------------
+model Test {
+  id                String   @id @default(cuid())
+  title             String
+  description       String?
+  startTime         DateTime? // scheduled open (nullable = open immediately)
+  endTime           DateTime? // scheduled close (nullable = no close)
+  timezone          String? // IANA tz, e.g. "Asia/Karachi"
+  timeLimitMinutes  Int? // null = no time limit
+  accessMode        String   @default("PUBLIC") // PUBLIC | CODE | WHITELIST
+  accessCode        String? // set when accessMode = "CODE"
+  isPublic          Boolean  @default(false) // convenience flag (accessMode === PUBLIC)
+  maxAttempts       Int      @default(1)
+  resultReleaseMode String   @default("IMMEDIATE") // IMMEDIATE | MANUAL
+  positiveMarks     Float    @default(1)
+  negativeMarks     Float    @default(0)
+  partialMarks      Boolean  @default(false) // allow partial credit on multi-correct MCQ
+  isPublished       Boolean  @default(false)
+  shareableLink     String   @unique
+  createdBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  admin        Admin        @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  questions    Question[]
+  whitelists   Whitelist[]
+  participants Participant[]
+  attempts     Attempt[]
+
+  @@index([createdBy])
+  @@index([isPublished])
+}
+
+// ---------------------------------------------------------------------------
+// Question
+// `type` ∈ { "MCQ", "TEXT" }
+// `options`        — JSON: string[] (MCQ). null/[] for TEXT.
+// `correctAnswers` — JSON:
+//   - MCQ  → number[] (indices into options)
+//   - TEXT → string[] (list of acceptable answers; case-insensitive match)
+// ---------------------------------------------------------------------------
+model Question {
+  id             String   @id @default(cuid())
+  testId         String
+  questionText   String
+  type           String   @default("MCQ") // MCQ | TEXT
+  options        Json // string[]
+  correctAnswers Json // number[] | string[]
+  positiveMarks  Float    @default(1)
+  negativeMarks  Float    @default(0)
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  test      Test       @relation(fields: [testId], references: [id], onDelete: Cascade)
+  responses Response[]
+
+  @@index([testId])
+}
+
+// ---------------------------------------------------------------------------
+// Whitelist — emails/phones allowed to take a WHITELIST test.
+// A row holds email OR phone (either may be null but not both).
+// ---------------------------------------------------------------------------
+model Whitelist {
+  id        String   @id @default(cuid())
+  testId    String
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, email])
+  @@unique([testId, phone])
+  @@index([testId])
+}
+
+// ---------------------------------------------------------------------------
+// Participant — a verified test-taker for a specific test (no global account).
+// `otpCode` / `otpExpiry` — used during the OTP verification step (Phase 4).
+// ---------------------------------------------------------------------------
+model Participant {
+  id         String    @id @default(cuid())
+  testId     String
+  email      String?
+  phone      String?
+  otpCode    String?
+  otpExpiry  DateTime?
+  isVerified Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  test     Test       @relation(fields: [testId], references: [id], onDelete: Cascade)
+  attempts Attempt[]
+
+  @@unique([testId, email])
+  @@unique([testId, phone])
+  @@index([testId])
+}
+
+// ---------------------------------------------------------------------------
+// Attempt — one taking of a test by a participant.
+// `status` ∈ { "IN_PROGRESS", "SUBMITTED", "AUTO_SUBMITTED" }
+// `tabSwitches` — anti-cheat counter (visibilitychange events).
+// `totalScore` — computed on the backend at submission.
+// ---------------------------------------------------------------------------
+model Attempt {
+  id           String    @id @default(cuid())
+  testId       String
+  participantId String
+  startTime    DateTime
+  endTime      DateTime?
+  status       String    @default("IN_PROGRESS") // IN_PROGRESS | SUBMITTED | AUTO_SUBMITTED
+  totalScore   Float?
+  tabSwitches  Int       @default(0)
+  createdAt    DateTime  @default(now())
+
+  test        Test        @relation(fields: [testId], references: [id], onDelete: Cascade)
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  responses   Response[]
+
+  @@index([testId])
+  @@index([participantId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Response — one answer to one question within one attempt.
+// `userAnswer` — JSON:
+//   - MCQ  → number[] (selected indices)
+//   - TEXT → string
+// `marksAwarded` — null until graded.
+// ---------------------------------------------------------------------------
+model Response {
+  id           String   @id @default(cuid())
+  attemptId    String
+  questionId   String
+  userAnswer   Json?
+  isCorrect    Boolean?
+  marksAwarded Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  attempt  Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}
