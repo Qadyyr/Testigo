@@ -1,14 +1,14 @@
 /**
- * Seed script for OmniTest Engine (Phase 1, refined access model).
+ * Seed script for Testigo (Phase 1, refined access model).
  * Run with:  bun prisma/seed.ts
  *
  * Access model: every test is WHITELIST-based. Admin registers students by
- * email/phone. A student enters their email/phone on the home page; if they
- * are registered for exactly one (open) test they proceed directly, otherwise
+ * phone number. A student enters their phone on the home page; if they are
+ * registered for exactly one (open) test they proceed directly, otherwise
  * they enter a per-test code to choose.
  *
  * Creates:
- *   - SUPER_ADMIN: admin@omnitest.test / admin1234
+ *   - SUPER_ADMIN: admin@testigo.test / admin1234
  *   - Test A: "Sample General Knowledge Quiz"  link=demo123  code=GK2024
  *   - Test B: "Sample Aptitude Assessment"     link=demo456  code=APT2024
  *   - Whitelist: +923001234567 on BOTH tests
@@ -18,7 +18,7 @@ import bcrypt from 'bcryptjs'
 import { db } from '../src/lib/db'
 
 async function main() {
-  const email = 'admin@omnitest.test'
+  const email = 'admin@testigo.test'
   const password = 'admin1234'
   const passwordHash = await bcrypt.hash(password, 10)
 
@@ -28,7 +28,7 @@ async function main() {
     create: {
       email,
       passwordHash,
-      name: 'OmniTest Admin',
+      name: 'Testigo Admin',
       role: 'SUPER_ADMIN',
     },
   })

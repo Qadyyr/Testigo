@@ -427,7 +427,7 @@ export function ParticipantTestView() {
   // Prefill phone from the home lookup (ephemeral, per-tab) if present.
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem('omnitest:phone')
+      const saved = sessionStorage.getItem('testigo:phone')
       if (saved) setPhone(saved)
     } catch {
       /* non-fatal */
@@ -518,7 +518,7 @@ export function ParticipantTestView() {
             type="button"
             onClick={() => navigate('home')}
             className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label="OmniTest Engine — home"
+            aria-label="Testigo — home"
           >
             <Brand />
           </button>

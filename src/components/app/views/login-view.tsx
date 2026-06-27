@@ -78,7 +78,7 @@ export function LoginView() {
             type="button"
             onClick={() => navigate('home')}
             className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label="OmniTest Engine — home"
+            aria-label="Testigo — home"
           >
             <Brand />
           </button>
@@ -169,7 +169,7 @@ export function LoginView() {
               <span>
                 Email:{' '}
                 <code className="rounded bg-muted px-1 py-0.5">
-                  admin@omnitest.test
+                  admin@testigo.test
                 </code>
               </span>
               <span>

@@ -4,9 +4,9 @@ import { ClipboardCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * OmniTest Engine brand mark — a lucide icon in an emerald rounded square,
- * paired with the wordmark. Presentational only; wrap in a button/link when
- * the mark needs to be clickable.
+ * Testigo brand mark — a lucide icon in an emerald rounded square, paired with
+ * the wordmark. Presentational only; wrap in a button/link when the mark needs
+ * to be clickable.
  */
 export function Brand({
   className,
@@ -21,9 +21,7 @@ export function Brand({
         <ClipboardCheck className="size-5" />
       </span>
       {showWordmark && (
-        <span className="text-base font-semibold tracking-tight">
-          OmniTest <span className="text-emerald-600">Engine</span>
-        </span>
+        <span className="text-base font-semibold tracking-tight">Testigo</span>
       )}
     </span>
   )

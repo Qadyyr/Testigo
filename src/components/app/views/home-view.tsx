@@ -81,11 +81,11 @@ function ThemeToggle() {
 function TerminalAccent() {
   const reduceMotion = useReducedMotion()
   const lines = [
-    { p: '$', t: 'omnitest identify', c: 'text-foreground' },
+    { p: '$', t: 'testigo identify', c: 'text-foreground' },
     { p: '↳', t: 'phone registered ✓', c: 'text-emerald-600 dark:text-emerald-400' },
-    { p: '$', t: 'omnitest tests', c: 'text-foreground' },
+    { p: '$', t: 'testigo tests', c: 'text-foreground' },
     { p: '↳', t: '2 tests found for you', c: 'text-muted-foreground' },
-    { p: '$', t: 'omnitest start --code GK2024', c: 'text-foreground' },
+    { p: '$', t: 'testigo start --code GK2024', c: 'text-foreground' },
     { p: '↳', t: 'opening secure session…', c: 'text-emerald-600 dark:text-emerald-400' },
   ]
   return (
@@ -98,7 +98,7 @@ function TerminalAccent() {
         </span>
         <span className="ml-2 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <TerminalSquare className="size-3.5" />
-          omnitest — session
+          testigo — session
         </span>
       </CardHeader>
       <CardContent className="p-4 font-mono text-xs leading-relaxed">
@@ -169,7 +169,7 @@ export function HomeView() {
       const { count, tests } = json.data
       // Remember phone for the landing page to prefill (ephemeral, per-tab).
       try {
-        sessionStorage.setItem('omnitest:phone', p)
+        sessionStorage.setItem('testigo:phone', p)
       } catch {
         /* sessionStorage may be unavailable; non-fatal */
       }
@@ -245,7 +245,7 @@ export function HomeView() {
               navigate('home')
             }}
             className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label="OmniTest Engine — home"
+            aria-label="Testigo — home"
           >
             <Brand />
           </button>

@@ -19,7 +19,7 @@ export function SiteFooter() {
           </p>
         </div>
         <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:text-right">
-          <span>© {year} OmniTest Engine</span>
+          <span>© {year} Testigo</span>
           <span>Phase 1 · Foundation</span>
         </div>
       </div>

@@ -1,11 +1,11 @@
-# OmniTest Engine — Shared Worklog
+# Testigo — Shared Worklog
 
 This file is the single source of truth for cross-agent coordination.
 Each agent appends a new section (starting with `---`) after finishing its Task ID.
 Read previous sections before starting your own task.
 
 ## Project Overview
-OmniTest Engine — a secure, admin-driven test/survey platform (Next.js 16 SPA on `/`,
+Testigo — a secure, admin-driven test/survey platform (Next.js 16 SPA on `/`,
 SQLite via Prisma, NextAuth admin auth, participant access via `/?t=<shareable-link>`).
 
 ## Phase Plan
@@ -94,3 +94,22 @@ Work Log:
 Stage Summary:
 - Participant access is now phone-only end-to-end. Demo phone: +923001234567 (whitelisted on demo123/GK2024 + demo456/APT2024). Agent-browser verified: home phone lookup → 2 tests → code GK2024 → landing with phone prefilled → Verify access → "Access verified" + Start Test; unregistered phone → "Not registered". Lint clean, no runtime errors.
 - Schema unchanged (email column remains on Whitelist for future use, nullable). normalizeEmail kept exported in lib/api.ts for later. Email is simply unused in the participant flow for now.
+
+---
+Task ID: 5
+Agent: orchestrator (main)
+Task: Rebrand "OmniTest Engine" → "Testigo" across the entire codebase.
+
+Work Log:
+- User-facing wordmark (brand.tsx): "OmniTest Engine" → "Testigo" (single word, emerald icon square kept). Updated comment.
+- Metadata (layout.tsx): title "Testigo — Secure Test Platform", OG/Twitter/siteName/authors/keywords all → Testigo.
+- Footer (site-footer.tsx): "© {year} Testigo".
+- Home view: terminal accent commands → testigo identify / testigo tests / testigo start --code GK2024; session label "testigo — session"; sessionStorage key 'testigo:phone'; aria-label "Testigo — home".
+- Login view: aria-label "Testigo — home"; demo credential hint email → admin@testigo.test.
+- Participant view: sessionStorage key 'testigo:phone'; aria-label "Testigo — home".
+- auth.ts + schema.prisma + seed.ts comments → Testigo. Seed admin email → admin@testigo.test, admin name → "Testigo Admin". Re-ran seed (new admin row created). Fixed stale "email/phone" seed comment → "phone number".
+- Updated worklog header overview line to "Testigo".
+
+Stage Summary:
+- Fully rebranded to Testigo. Zero "omnitest" references remain in source (.ts/.tsx/.prisma). Browser tab title "Testigo — Secure Test Platform". Login verified with admin@testigo.test / admin1234 → dashboard shows Testigo brand + 2 sample tests. Terminal accent (aria-hidden) shows testigo CLI commands. Lint clean, no runtime errors.
+- New admin login: admin@testigo.test / admin1234 (old admin@omnitest.test row still exists in DB but unused). Demo student phone unchanged: +923001234567.

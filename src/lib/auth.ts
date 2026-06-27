@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 
 /**
- * NextAuth configuration for OmniTest Engine.
+ * NextAuth configuration for Testigo.
  *
  * Only admins have accounts. Participants take tests via shareable links and
  * (in Phase 4) OTP verification — they never go through this credentials flow.

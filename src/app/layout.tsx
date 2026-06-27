@@ -15,30 +15,30 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OmniTest Engine — Secure Test Platform",
+  title: "Testigo — Secure Test Platform",
   description:
     "Production-grade, secure survey & testing platform. Admin-driven, effortless for participants.",
   keywords: [
-    "OmniTest",
+    "Testigo",
     "test platform",
     "quiz",
     "assessment",
     "anti-cheat",
     "Next.js",
   ],
-  authors: [{ name: "OmniTest Engine" }],
+  authors: [{ name: "Testigo" }],
   icons: {
     icon: "/logo.svg",
   },
   openGraph: {
-    title: "OmniTest Engine",
+    title: "Testigo",
     description: "Secure, scalable test-taking platform",
-    siteName: "OmniTest Engine",
+    siteName: "Testigo",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "OmniTest Engine",
+    title: "Testigo",
     description: "Secure, scalable test-taking platform",
   },
 };

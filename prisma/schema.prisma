@@ -1,4 +1,4 @@
-// OmniTest Engine — Prisma schema
+// Testigo — Prisma schema
 // DB: SQLite (sandbox). Designed so a Postgres/Supabase migration is trivial:
 //   - switch `provider` to "postgresql"
 //   - convert the String "enum" fields below to native `enum` types
