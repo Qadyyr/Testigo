@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { signIn } from 'next-auth/react'
 import { toast } from 'sonner'
-import { ArrowLeft, KeyRound, Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -158,29 +158,6 @@ export function LoginView() {
             </CardFooter>
           </form>
         </Card>
-
-        <div className="mt-4 rounded-lg border border-dashed bg-muted/40 p-4">
-          <div className="flex items-start gap-2">
-            <KeyRound className="mt-0.5 size-4 text-muted-foreground" />
-            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Demo credentials
-              </span>
-              <span>
-                Email:{' '}
-                <code className="rounded bg-muted px-1 py-0.5">
-                  admin@testigo.test
-                </code>
-              </span>
-              <span>
-                Password:{' '}
-                <code className="rounded bg-muted px-1 py-0.5">
-                  admin1234
-                </code>
-              </span>
-            </div>
-          </div>
-        </div>
 
         <div className="mt-6 flex justify-center">
           <Button
