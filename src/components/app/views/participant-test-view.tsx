@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Clock,
   Flag,
+  Grid,
   Loader2,
   Lock,
   Play,
@@ -41,6 +42,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -541,6 +549,17 @@ function Gating({
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
 
+  // Auto-start for PUBLIC tests that don't require a code — no fields needed,
+  // so showing the gate is pointless. Skip straight to starting the attempt.
+  const autoStart = test.accessMode === 'PUBLIC' && !test.requireCode
+  const autoStartedRef = useRef(false)
+  useEffect(() => {
+    if (!autoStart || autoStartedRef.current) return
+    autoStartedRef.current = true
+    // Call handleStart without an event.
+    handleStart({ preventDefault: () => {} } as unknown as FormEvent)
+  }, [autoStart])
+
   async function handleStart(e: FormEvent) {
     e.preventDefault()
     setError(null)
@@ -604,6 +623,16 @@ function Gating({
     } finally {
       setStarting(false)
     }
+  }
+
+  // For auto-start (PUBLIC, no code), show a spinner instead of the form.
+  if (autoStart) {
+    return (
+      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 py-16">
+        <Loader2 className="size-6 animate-spin text-emerald-600" />
+        <p className="text-sm text-muted-foreground">Starting your test…</p>
+      </div>
+    )
   }
 
   return (
@@ -1062,93 +1091,79 @@ function Taking({
           </div>
         </div>
 
-        {/* Right: palette */}
-        <aside className="lg:w-72 lg:shrink-0">
+        {/* Right: palette — desktop sidebar */}
+        <aside className="hidden lg:block lg:w-72 lg:shrink-0">
           <div className="lg:sticky lg:top-32">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Question palette</CardTitle>
-                <CardDescription className="text-xs">
-                  {answeredCount} answered · {questions.length - answeredCount} left
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-6">
-                  {questions.map((qq, i) => {
-                    const a = store.answers[qq.id]
-                    const isAnswered = a !== undefined && a !== null && (Array.isArray(a) ? a.length > 0 : String(a).trim() !== '')
-                    const isFlagged = !!store.flagged[qq.id]
-                    const isCurrent = i === current
-                    return (
-                      <button
-                        key={qq.id}
-                        type="button"
-                        onClick={() => store.setCurrent(i)}
-                        className={`relative flex size-9 items-center justify-center rounded-md border text-xs font-medium transition ${
-                          isCurrent
-                            ? 'border-emerald-600 bg-emerald-600 text-white'
-                            : isAnswered
-                              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                              : 'border-border bg-background text-muted-foreground hover:bg-accent'
-                        }`}
-                        aria-label={`Question ${i + 1}${isAnswered ? ' (answered)' : ''}${isFlagged ? ' (flagged)' : ''}`}
-                      >
-                        {i + 1}
-                        {isFlagged && (
-                          <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-amber-500" />
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <Separator className="my-4" />
-
-                <div className="flex flex-col gap-2 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <span className="size-3 rounded border border-emerald-500/40 bg-emerald-500/10" /> Answered
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="size-3 rounded border border-border bg-background" /> Not answered
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="relative size-3 rounded border border-border bg-background">
-                      <span className="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-amber-500" />
-                    </span>
-                    Flagged for review
-                  </div>
-                </div>
-
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button className="mt-4 w-full bg-emerald-600 text-white hover:bg-emerald-700" disabled={submitting}>
-                      <Send className="size-4" />
-                      Submit test
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Submit test?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        You&apos;ve answered {answeredCount} of {questions.length} questions.
-                        You won&apos;t be able to change your answers after submitting.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Keep working</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleSubmit(false)}
-                        className="bg-emerald-600 text-white hover:bg-emerald-700"
-                      >
-                        Submit now
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </CardContent>
-            </Card>
+            <PaletteContent
+              questions={questions}
+              current={current}
+              answeredCount={answeredCount}
+              store={store}
+              submitting={submitting}
+              onSubmit={() => handleSubmit(false)}
+            />
           </div>
         </aside>
+      </div>
+
+      {/* Mobile: sticky bottom bar with palette toggle + submit */}
+      <div className="sticky bottom-0 z-30 flex items-center gap-2 border-t bg-background/95 px-4 py-2.5 backdrop-blur lg:hidden">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="flex-1">
+              <Grid className="size-4" />
+              Questions
+              <Badge variant="secondary" className="ml-1 font-mono">
+                {answeredCount}/{questions.length}
+              </Badge>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Question palette</SheetTitle>
+            </SheetHeader>
+            <div className="px-4 pb-6">
+              <PaletteContent
+                questions={questions}
+                current={current}
+                answeredCount={answeredCount}
+                store={store}
+                submitting={submitting}
+                onSubmit={() => handleSubmit(false)}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              disabled={submitting}
+            >
+              <Send className="size-4" />
+              Submit
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Submit test?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You&apos;ve answered {answeredCount} of {questions.length} questions.
+                You won&apos;t be able to change your answers after submitting.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep working</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleSubmit(false)}
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                Submit now
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )
@@ -1162,6 +1177,109 @@ function extractAttemptId(_token: string): string | null {
   } catch {
     return null
   }
+}
+
+// ---- palette content (shared by desktop sidebar + mobile sheet) ------------
+
+function PaletteContent({
+  questions,
+  current,
+  answeredCount,
+  store,
+  submitting,
+  onSubmit,
+}: {
+  questions: LoadQuestion[]
+  current: number
+  answeredCount: number
+  store: TestStore
+  submitting: boolean
+  onSubmit: () => void
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">Question palette</CardTitle>
+        <CardDescription className="text-xs">
+          {answeredCount} answered · {questions.length - answeredCount} left
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-6 gap-2">
+          {questions.map((qq, i) => {
+            const a = store.answers[qq.id]
+            const isAnswered = a !== undefined && a !== null && (Array.isArray(a) ? a.length > 0 : String(a).trim() !== '')
+            const isFlagged = !!store.flagged[qq.id]
+            const isCurrent = i === current
+            return (
+              <button
+                key={qq.id}
+                type="button"
+                onClick={() => store.setCurrent(i)}
+                className={`relative flex size-9 items-center justify-center rounded-md border text-xs font-medium transition ${
+                  isCurrent
+                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                    : isAnswered
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                      : 'border-border bg-background text-muted-foreground hover:bg-accent'
+                }`}
+                aria-label={`Question ${i + 1}${isAnswered ? ' (answered)' : ''}${isFlagged ? ' (flagged)' : ''}`}
+              >
+                {i + 1}
+                {isFlagged && (
+                  <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-amber-500" />
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        <Separator className="my-4" />
+
+        <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="size-3 rounded border border-emerald-500/40 bg-emerald-500/10" /> Answered
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="size-3 rounded border border-border bg-background" /> Not answered
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="relative size-3 rounded border border-border bg-background">
+              <span className="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-amber-500" />
+            </span>
+            Flagged for review
+          </div>
+        </div>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button className="mt-4 w-full bg-emerald-600 text-white hover:bg-emerald-700" disabled={submitting}>
+              <Send className="size-4" />
+              Submit test
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Submit test?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You&apos;ve answered {answeredCount} of {questions.length} questions.
+                You won&apos;t be able to change your answers after submitting.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep working</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onSubmit}
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                Submit now
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
+  )
 }
 
 // ---- MCQ input -------------------------------------------------------------
