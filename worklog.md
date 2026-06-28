@@ -196,3 +196,21 @@ Work Log:
 
 Stage Summary:
 - PRODUCTION LIVE at https://testigo-beryl.vercel.app. Stack: Next.js 16 (Vercel) + Postgres (Neon) + NextAuth. $0/month. Full test-taking flow works on production: create (admin) → take (participant) → auto-grade → review. DB auto-pauses when idle (~1s cold start). All env vars set on Vercel.
+
+---
+Task ID: 12
+Agent: orchestrator (main)
+Task: Simplify import format (question/options/correct/explanation/type only) + test-level marks + new question types (MCQ/TRUE_FALSE/SHORT) + explanations in review.
+
+Work Log:
+- Schema: added `explanation String?` to Question model. Pushed to Neon.
+- Parser rewrite: simplified format — only questionText, type, options, correctAnswers, explanation. Removed positiveMarks/negativeMarks from parsed output. New types: MCQ, TRUE_FALSE (auto-generates [True,False] if no options), SHORT (replaces TEXT). Updated SAMPLE_CSV/JSON/MD with explanations + all 3 types + a deliberate broken row.
+- Create API: questionSchema now accepts explanation, type enum MCQ|TRUE_FALSE|SHORT. Questions created with test-level positiveMarks/negativeMarks (no per-question marks in import).
+- Submit/grading: MCQ || TRUE_FALSE graded as MCQ; SHORT graded as old TEXT. gradedAnswers now includes explanation. Returns explanation in review data.
+- Frontend participant view: LoadQuestion type updated; taking UI renders TRUE_FALSE as MCQ; review shows explanation per question (muted box). GradedAnswer interface updated.
+- Wizard: placeholder text updated to new format; Step 2 marks label "Marks awarded for every question in this test" (test-level, not per-question).
+- Seed: demo questions now have explanations ("2 + 2 = 4." / "Paris has been the capital of France since 987 AD.").
+- Re-seeded Neon, pushed to GitHub, Vercel auto-deployed.
+
+Stage Summary:
+- Live at https://testigo-beryl.vercel.app verified: pubdemo → start → answer → submit → result "100% — 2 of 2 correct" with explanations shown in review for both questions. Lint clean, tsc clean. Import format is now simple (5 fields only); marks are test-level; 3 question types supported.
