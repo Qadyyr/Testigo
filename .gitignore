@@ -54,3 +54,6 @@ server.log
 /skills/
 # database
 /db/
+
+# allow the example env file
+!.env.example
