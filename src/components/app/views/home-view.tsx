@@ -143,15 +143,15 @@ export function HomeView() {
   const { navigate } = useViewRouter()
   const reduceMotion = useReducedMotion()
 
-  const [phone, setPhone] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [step, setStep] = useState<Step>({ name: 'entry' })
   const [code, setCode] = useState('')
   const [resolving, setResolving] = useState(false)
 
   async function handleLookup(e: FormEvent) {
     e.preventDefault()
-    const p = phone.trim()
-    if (!p) {
+    const id = identifier.trim()
+    if (!id) {
       toast.error('Enter your registered phone number.')
       return
     }
@@ -160,16 +160,16 @@ export function HomeView() {
       const res = await fetch('/api/tests/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: p }),
+        body: JSON.stringify({ identifier: id }),
       })
       const json: ApiEnvelope<LookupResponse> = await res.json()
       if (!res.ok || !json.success || !json.data) {
         throw new Error(json.message || 'Lookup failed')
       }
       const { count, tests } = json.data
-      // Remember phone for the landing page to prefill (ephemeral, per-tab).
+      // Remember identifier for the landing page to prefill (ephemeral, per-tab).
       try {
-        sessionStorage.setItem('testigo:phone', p)
+        sessionStorage.setItem('testigo:identifier', id)
       } catch {
         /* sessionStorage may be unavailable; non-fatal */
       }
@@ -190,8 +190,8 @@ export function HomeView() {
 
   async function handleResolve(e: FormEvent) {
     e.preventDefault()
-    const p = phone.trim()
-    if (!p) {
+    const id = identifier.trim()
+    if (!id) {
       toast.error('Enter your registered phone number.')
       return
     }
@@ -204,7 +204,7 @@ export function HomeView() {
       const res = await fetch('/api/tests/resolve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: p, code: code.trim() }),
+        body: JSON.stringify({ identifier: id, code: code.trim() }),
       })
       const json: ApiEnvelope<ResolveResponse> = await res.json()
       if (!res.ok || !json.success || !json.data) {
@@ -303,16 +303,16 @@ export function HomeView() {
                 <CardContent>
                   <form onSubmit={handleLookup} className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="phone" className="text-xs">
+                      <Label htmlFor="identifier" className="text-xs">
                         Phone number
                       </Label>
                       <Input
-                        id="phone"
+                        id="identifier"
                         type="tel"
                         autoComplete="tel"
                         placeholder="+92 300 1234567"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
                       />
                     </div>
                     <Button
@@ -414,7 +414,7 @@ export function HomeView() {
                   <CardDescription>
                     We couldn&apos;t find any tests registered for{' '}
                     <span className="font-medium text-foreground">
-                      {phone}
+                      {identifier}
                     </span>
                     . Contact your administrator if this seems wrong.
                   </CardDescription>

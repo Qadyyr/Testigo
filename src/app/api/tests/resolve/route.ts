@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
-import { ok, fail, normalizePhone } from '@/lib/api'
+import { ok, fail, normalizeIdentifier } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
 const bodySchema = z.object({
-  phone: z.string().min(7, 'Enter a valid phone number'),
+  identifier: z.string().min(7, 'Enter a valid phone number'),
   code: z.string().trim().min(1, 'Code is required'),
 })
 
@@ -16,7 +16,7 @@ const bodySchema = z.object({
  * per-test code (set by the admin) to select which test to open. The code is
  * matched only against tests this participant is actually whitelisted for.
  *
- * Body: { phone: string, code: string }
+ * Body: { identifier: string, code: string }
  * 200: { success, data: { shareableLink } }
  * 404: invalid code for this participant
  */
@@ -28,14 +28,16 @@ export async function POST(req: Request) {
       return fail(parsed.error.issues[0]?.message ?? 'Invalid input', 400)
     }
     const { code } = parsed.data
-    const phoneNorm = normalizePhone(parsed.data.phone)
+    const identifier = normalizeIdentifier(parsed.data.identifier)
 
     const test = await db.test.findFirst({
       where: {
         isPublished: true,
+        accessMode: 'WHITELIST',
+        requireCode: true,
         accessCode: code,
         whitelists: {
-          some: { phone: phoneNorm },
+          some: { identifier },
         },
       },
       select: { shareableLink: true },

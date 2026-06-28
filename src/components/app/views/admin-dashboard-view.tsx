@@ -69,7 +69,7 @@ interface RecentTest {
   id: string
   title: string
   isPublished: boolean
-  accessMode: 'PUBLIC' | 'CODE' | 'WHITELIST'
+  accessMode: 'PUBLIC' | 'WHITELIST' | 'INVITE'
   createdAt: string
   attempts: number
 }
@@ -127,10 +127,10 @@ function accessModeLabel(mode: RecentTest['accessMode']): string {
   switch (mode) {
     case 'PUBLIC':
       return 'Public'
-    case 'CODE':
-      return 'Code'
     case 'WHITELIST':
       return 'Whitelist'
+    case 'INVITE':
+      return 'Invite'
   }
 }
 
@@ -138,9 +138,9 @@ function accessBadgeClass(mode: RecentTest['accessMode']): string {
   switch (mode) {
     case 'PUBLIC':
       return 'border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
-    case 'CODE':
-      return 'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300'
     case 'WHITELIST':
+      return 'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300'
+    case 'INVITE':
       return 'border-transparent bg-secondary text-secondary-foreground'
   }
 }

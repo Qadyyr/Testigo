@@ -82,8 +82,8 @@ import { cn } from '@/lib/utils'
 // ---- Shared types -----------------------------------------------------------
 
 type Step = 1 | 2 | 3 | 4
-type AccessMode = 'PUBLIC' | 'CODE' | 'WHITELIST' | 'INVITE'
-type ResultReleaseMode = 'IMMEDIATE' | 'MANUAL'
+type AccessMode = 'PUBLIC' | 'WHITELIST' | 'INVITE'
+type ResultReleaseMode = 'IMMEDIATE' | 'MANUAL' | 'NEVER'
 
 interface DryRunState {
   status: 'idle' | 'loading' | 'done'
@@ -139,12 +139,6 @@ const ACCESS_MODES: {
     icon: Globe,
   },
   {
-    value: 'CODE',
-    title: 'Password',
-    description: 'Require a shared password to start.',
-    icon: Lock,
-  },
-  {
     value: 'WHITELIST',
     title: 'Whitelist',
     description: 'Only registered phone numbers can access.',
@@ -192,6 +186,7 @@ export function CreateTestView() {
 
   // Step 3
   const [accessMode, setAccessMode] = useState<AccessMode>('PUBLIC')
+  const [requireCode, setRequireCode] = useState(false)
   const [accessCode, setAccessCode] = useState('')
   const [whitelistText, setWhitelistText] = useState('')
   const [inviteCount, setInviteCount] = useState('10')
@@ -362,7 +357,8 @@ export function CreateTestView() {
           ? Number(settings.timeLimitMinutes)
           : null,
         accessMode,
-        accessCode: accessMode === 'CODE' ? accessCode.trim() || undefined : undefined,
+        requireCode,
+        accessCode: requireCode ? accessCode.trim() || undefined : undefined,
         maxAttempts: numOr(settings.maxAttempts, 1),
         resultReleaseMode: settings.resultReleaseMode,
         positiveMarks: numOr(settings.positiveMarks, 1),
@@ -489,6 +485,8 @@ export function CreateTestView() {
           <Step3Access
             accessMode={accessMode}
             setAccessMode={setAccessMode}
+            requireCode={requireCode}
+            setRequireCode={setRequireCode}
             accessCode={accessCode}
             setAccessCode={setAccessCode}
             whitelistText={whitelistText}
@@ -505,6 +503,7 @@ export function CreateTestView() {
             imported={imported}
             settings={settings}
             accessMode={accessMode}
+            requireCode={requireCode}
             accessCode={accessCode}
             whitelistText={whitelistText}
             inviteCount={inviteCount}
@@ -1143,6 +1142,8 @@ function Step2Settings({
 function Step3Access({
   accessMode,
   setAccessMode,
+  requireCode,
+  setRequireCode,
   accessCode,
   setAccessCode,
   whitelistText,
@@ -1154,6 +1155,8 @@ function Step3Access({
 }: {
   accessMode: AccessMode
   setAccessMode: (m: AccessMode) => void
+  requireCode: boolean
+  setRequireCode: (v: boolean) => void
   accessCode: string
   setAccessCode: (v: string) => void
   whitelistText: string
@@ -1220,21 +1223,6 @@ function Step3Access({
                       {m.description}
                     </p>
 
-                    {selected && m.value === 'CODE' ? (
-                      <div className="mt-3 space-y-2">
-                        <span className="text-xs font-medium">
-                          Shared password
-                        </span>
-                        <Input
-                          aria-label="Shared password"
-                          value={accessCode}
-                          onChange={(e) => setAccessCode(e.target.value)}
-                          placeholder="e.g. math2024"
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    ) : null}
-
                     {selected && m.value === 'WHITELIST' ? (
                       <div className="mt-3 space-y-2">
                         <div className="flex items-center justify-between">
@@ -1286,6 +1274,50 @@ function Step3Access({
         </CardContent>
       </Card>
 
+      {/* Optional code overlay — stacks on any primary mode */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Access code (optional)</CardTitle>
+          <CardDescription>
+            Add a shared passcode on top of the access mode above. Useful when
+            you want everyone to start at the same time.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <Label
+            htmlFor="require-code"
+            className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition hover:bg-accent"
+          >
+            <Switch
+              id="require-code"
+              checked={requireCode}
+              onCheckedChange={setRequireCode}
+            />
+            <div className="flex-1 space-y-1">
+              <span className="text-sm font-medium">Require an access code</span>
+              <p className="text-xs text-muted-foreground">
+                Participants must enter this code to start.
+              </p>
+            </div>
+          </Label>
+
+          {requireCode ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="access-code" className="text-xs font-medium">
+                Access code
+              </Label>
+              <Input
+                id="access-code"
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                placeholder="e.g. GK2024"
+                className="font-mono uppercase"
+              />
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
       <div className="flex items-center justify-between gap-3">
         <Button type="button" variant="outline" onClick={onBack}>
           <ArrowLeft className="size-4" />
@@ -1312,6 +1344,7 @@ function Step4Review({
   imported,
   settings,
   accessMode,
+  requireCode,
   accessCode,
   whitelistText,
   inviteCount,
@@ -1326,6 +1359,7 @@ function Step4Review({
   imported: ParsedQuestion[] | null
   settings: Settings
   accessMode: AccessMode
+  requireCode: boolean
   accessCode: string
   whitelistText: string
   inviteCount: string
@@ -1358,17 +1392,20 @@ function Step4Review({
 
   const accessLabel = ACCESS_MODES.find((m) => m.value === accessMode)?.title
   const accessDetail = (() => {
-    switch (accessMode) {
-      case 'CODE':
-        return accessCode ? `Password: ${accessCode}` : 'No password set'
-      case 'WHITELIST':
-        return `${whitelistCount} phone number${whitelistCount === 1 ? '' : 's'} whitelisted`
-      case 'INVITE':
-        return `${Number(inviteCount) || 0} single-use invite links`
-      case 'PUBLIC':
-      default:
-        return 'Anyone with the link'
-    }
+    const base = (() => {
+      switch (accessMode) {
+        case 'WHITELIST':
+          return `${whitelistCount} phone number${whitelistCount === 1 ? '' : 's'} whitelisted`
+        case 'INVITE':
+          return `${Number(inviteCount) || 0} single-use invite links`
+        case 'PUBLIC':
+        default:
+          return 'Anyone with the link'
+      }
+    })()
+    return requireCode
+      ? `${base} + code${accessCode ? `: ${accessCode}` : ' (not set)'}`
+      : base
   })()
 
   const rows: { label: string; value: ReactNode }[] = [

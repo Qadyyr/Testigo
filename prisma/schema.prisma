@@ -33,9 +33,22 @@ model Admin {
 
 // ---------------------------------------------------------------------------
 // Test — a single exam/survey.
-// `accessMode`        ∈ { "PUBLIC", "CODE", "WHITELIST" }
-// `resultReleaseMode` ∈ { "IMMEDIATE", "MANUAL" }
-// `shareableLink`     — unguessable nanoid token used in `/?t=<token>`.
+//
+// ACCESS MODEL (Option B — primary gate + optional code overlay):
+//   `accessMode` ∈ { "PUBLIC", "WHITELIST", "INVITE" }   (primary gate)
+//   `requireCode` Boolean + `accessCode` String?           (optional overlay)
+//
+//   - PUBLIC    + requireCode=false → anyone with the link
+//   - PUBLIC    + requireCode=true  → link + code (the old "CODE" mode)
+//   - WHITELIST + (requireCode any) → only registered identifiers (+ optional code)
+//   - INVITE    + (requireCode any) → single-use invite links (+ optional code)
+//
+// `resultReleaseMode` ∈ { "IMMEDIATE", "MANUAL", "NEVER" }
+//   - IMMEDIATE → student sees score + answers right after submit
+//   - MANUAL    → "results pending" until admin releases (Phase 5)
+//   - NEVER     → score never shown to students (admin-only)
+//
+// `shareableLink` — unguessable nanoid token used in `/?t=<token>`.
 // ---------------------------------------------------------------------------
 model Test {
   id                String   @id @default(cuid())
@@ -45,14 +58,14 @@ model Test {
   endTime           DateTime? // scheduled close (nullable = no close)
   timezone          String? // IANA tz, e.g. "Asia/Karachi"
   timeLimitMinutes  Int? // null = no time limit
-  accessMode        String   @default("PUBLIC") // PUBLIC | CODE | WHITELIST | INVITE
-  accessCode        String? // set when accessMode = "CODE" (password)
-  isPublic          Boolean  @default(false) // convenience flag (accessMode === PUBLIC)
+  accessMode        String   @default("PUBLIC") // PUBLIC | WHITELIST | INVITE
+  requireCode       Boolean  @default(false) // optional code overlay
+  accessCode        String? // set when requireCode = true
   maxAttempts       Int      @default(1)
-  resultReleaseMode String   @default("IMMEDIATE") // IMMEDIATE | MANUAL
+  resultReleaseMode String   @default("IMMEDIATE") // IMMEDIATE | MANUAL | NEVER
   positiveMarks     Float    @default(1)
   negativeMarks     Float    @default(0)
-  partialMarks      Boolean  @default(false) // allow partial credit on multi-correct MCQ
+  partialMarks      Boolean  @default(false) // partial credit on multi-correct MCQ
   isPublished       Boolean  @default(false)
   shareableLink     String   @unique
   createdBy         String
@@ -73,10 +86,10 @@ model Test {
 // ---------------------------------------------------------------------------
 // Question
 // `type` ∈ { "MCQ", "TEXT" }
-// `options`        — JSON: string[] (MCQ). null/[] for TEXT.
+// `options`        — JSON: string[] (MCQ). [] for TEXT.
 // `correctAnswers` — JSON:
 //   - MCQ  → number[] (indices into options)
-//   - TEXT → string[] (list of acceptable answers; case-insensitive match)
+//   - TEXT → string[] (acceptable answers; case-insensitive match for auto-grading)
 // ---------------------------------------------------------------------------
 model Question {
   id             String   @id @default(cuid())
@@ -97,28 +110,29 @@ model Question {
 }
 
 // ---------------------------------------------------------------------------
-// Whitelist — emails/phones allowed to take a WHITELIST test.
-// A row holds email OR phone (either may be null but not both).
+// Whitelist — identifiers allowed to take a WHITELIST test.
+// `identifier`     — the value (currently a phone number; later email/student-ID).
+// `identifierType` ∈ { "PHONE" } for now; additive later (EMAIL, STUDENT_ID).
+// Generic column name means adding new identifier types is a backfill, not a rename.
 // ---------------------------------------------------------------------------
 model Whitelist {
-  id        String   @id @default(cuid())
-  testId    String
-  email     String?
-  phone     String?
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  testId         String
+  identifier     String
+  identifierType String   @default("PHONE") // PHONE | (EMAIL | STUDENT_ID future)
+  createdAt      DateTime @default(now())
 
   test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
 
-  @@unique([testId, email])
-  @@unique([testId, phone])
+  @@unique([testId, identifier])
   @@index([testId])
 }
 
 // ---------------------------------------------------------------------------
 // Invitation — single-use, unguessable links for INVITE-access tests.
 // Each student gets a unique token (/?invite=<token>); `usedAt` is set when
-// consumed, so a link works exactly once. This is the free, secure identity
-// model: possession of the link IS the proof of invitation (no OTP needed).
+// consumed, so a link works exactly once. Possession of the link IS the proof
+// of invitation (no OTP needed) — the free secure identity model.
 // ---------------------------------------------------------------------------
 model Invitation {
   id        String    @id @default(cuid())
@@ -134,43 +148,43 @@ model Invitation {
 
 // ---------------------------------------------------------------------------
 // Participant — a verified test-taker for a specific test (no global account).
-// `otpCode` / `otpExpiry` — used during the OTP verification step (Phase 4).
+// `identifier` / `identifierType` mirror the Whitelist columns.
+// For PUBLIC tests, a participant row is created on start with the (optional)
+// identifier they provided; for INVITE tests, the identifier is the invite token.
 // ---------------------------------------------------------------------------
 model Participant {
-  id         String    @id @default(cuid())
-  testId     String
-  email      String?
-  phone      String?
-  otpCode    String?
-  otpExpiry  DateTime?
-  isVerified Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  testId         String
+  identifier     String?
+  identifierType String    @default("PHONE")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   test     Test       @relation(fields: [testId], references: [id], onDelete: Cascade)
   attempts Attempt[]
 
-  @@unique([testId, email])
-  @@unique([testId, phone])
+  @@unique([testId, identifier])
   @@index([testId])
 }
 
 // ---------------------------------------------------------------------------
 // Attempt — one taking of a test by a participant.
 // `status` ∈ { "IN_PROGRESS", "SUBMITTED", "AUTO_SUBMITTED" }
+// `startTime` — backend-written the moment verification passes; the source of
+//   truth for the timer (never trust client clocks).
 // `tabSwitches` — anti-cheat counter (visibilitychange events).
-// `totalScore` — computed on the backend at submission.
+// `totalScore` — computed on the backend at submission (0-100 percentage).
 // ---------------------------------------------------------------------------
 model Attempt {
-  id           String    @id @default(cuid())
-  testId       String
+  id            String    @id @default(cuid())
+  testId        String
   participantId String
-  startTime    DateTime
-  endTime      DateTime?
-  status       String    @default("IN_PROGRESS") // IN_PROGRESS | SUBMITTED | AUTO_SUBMITTED
-  totalScore   Float?
-  tabSwitches  Int       @default(0)
-  createdAt    DateTime  @default(now())
+  startTime     DateTime
+  endTime       DateTime?
+  status        String    @default("IN_PROGRESS") // IN_PROGRESS | SUBMITTED | AUTO_SUBMITTED
+  totalScore    Float?
+  tabSwitches   Int       @default(0)
+  createdAt     DateTime  @default(now())
 
   test        Test        @relation(fields: [testId], references: [id], onDelete: Cascade)
   participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
@@ -186,7 +200,8 @@ model Attempt {
 // `userAnswer` — JSON:
 //   - MCQ  → number[] (selected indices)
 //   - TEXT → string
-// `marksAwarded` — null until graded.
+// `isCorrect` / `marksAwarded` — null until graded.
+//   MCQ is auto-graded on submit; TEXT stays null (pending manual review).
 // ---------------------------------------------------------------------------
 model Response {
   id           String   @id @default(cuid())

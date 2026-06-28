@@ -24,10 +24,11 @@ const bodySchema = z.object({
   endTime: z.string().datetime().optional().nullable(),
   timezone: z.string().max(100).optional().nullable(),
   timeLimitMinutes: z.number().int().positive().optional().nullable(),
-  accessMode: z.enum(['PUBLIC', 'CODE', 'WHITELIST', 'INVITE']),
+  accessMode: z.enum(['PUBLIC', 'WHITELIST', 'INVITE']),
+  requireCode: z.boolean().default(false),
   accessCode: z.string().min(1).max(100).optional(),
   maxAttempts: z.number().int().min(1).default(1),
-  resultReleaseMode: z.enum(['IMMEDIATE', 'MANUAL']).default('IMMEDIATE'),
+  resultReleaseMode: z.enum(['IMMEDIATE', 'MANUAL', 'NEVER']).default('IMMEDIATE'),
   positiveMarks: z.number().min(0).default(1),
   negativeMarks: z.number().min(0).default(0),
   isPublished: z.boolean().default(false),
@@ -65,9 +66,9 @@ export async function POST(req: Request) {
     }
     const b = parsed.data
 
-    // Mode-specific validation.
-    if (b.accessMode === 'CODE' && !b.accessCode) {
-      return fail('Password (accessCode) is required for CODE mode', 400)
+    // Code overlay validation: if requireCode is true, accessCode must be set.
+    if (b.requireCode && !b.accessCode) {
+      return fail('Access code is required when "Require access code" is enabled', 400)
     }
     if (b.accessMode === 'WHITELIST' && (!b.whitelist || b.whitelist.length === 0)) {
       return fail('At least one phone number is required for WHITELIST mode', 400)
@@ -90,8 +91,8 @@ export async function POST(req: Request) {
         timezone: b.timezone ?? null,
         timeLimitMinutes: b.timeLimitMinutes ?? null,
         accessMode: b.accessMode,
-        accessCode: b.accessMode === 'CODE' ? b.accessCode! : null,
-        isPublic: b.accessMode === 'PUBLIC',
+        requireCode: b.requireCode,
+        accessCode: b.requireCode ? b.accessCode! : null,
         maxAttempts: b.maxAttempts,
         resultReleaseMode: b.resultReleaseMode,
         positiveMarks: b.positiveMarks,

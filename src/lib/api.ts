@@ -10,12 +10,14 @@ export function fail(message: string, status = 400) {
   return NextResponse.json({ success: false, message }, { status })
 }
 
-/** Normalize an email for case-insensitive matching. */
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase()
-}
-
-/** Normalize a phone number (strip spaces/dashes; keep + and digits). */
-export function normalizePhone(phone: string): string {
-  return phone.trim().replace(/[\s\-()]/g, '')
+/**
+ * Normalize a participant identifier. Currently identifierType is always PHONE,
+ * so we strip spaces/dashes/parentheses and keep digits + leading '+'.
+ * (When EMAIL/STUDENT_ID identifier types are added, branch on the type here.)
+ */
+export function normalizeIdentifier(
+  raw: string,
+  _type: string = 'PHONE'
+): string {
+  return raw.trim().replace(/[\s\-()]/g, '')
 }
