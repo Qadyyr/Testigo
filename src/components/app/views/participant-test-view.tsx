@@ -1295,8 +1295,12 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {result.answers.map((a, i) => {
-              const userSel = Array.isArray(a.userAnswer) ? a.userAnswer : []
-              const correct = Array.isArray(a.correctAnswers) ? a.correctAnswers : []
+              const userSel: number[] = Array.isArray(a.userAnswer)
+                ? (a.userAnswer as number[])
+                : []
+              const correct: number[] = Array.isArray(a.correctAnswers)
+                ? (a.correctAnswers as number[])
+                : []
               const isMcq = a.type === 'MCQ'
               return (
                 <div key={a.questionId} className="rounded-lg border p-4">

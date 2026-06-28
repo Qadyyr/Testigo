@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { nanoid } from 'nanoid'
 import { db } from '@/lib/db'
 import { getAdminSession } from '@/lib/session'
-import { fail, normalizePhone } from '@/lib/api'
+import { fail, normalizeIdentifier } from '@/lib/api'
 import type { ParsedQuestion } from '@/lib/question-parser'
 
 export const dynamic = 'force-dynamic'
@@ -118,13 +118,17 @@ export async function POST(req: Request) {
     // Access-mode side data.
     let inviteLinks: string[] | undefined
     if (b.accessMode === 'WHITELIST' && b.whitelist) {
-      // Dedupe + normalize phones; skip blanks.
-      const phones = Array.from(
-        new Set(b.whitelist.map(normalizePhone).filter(Boolean))
+      // Dedupe + normalize identifiers (phones); skip blanks.
+      const identifiers = Array.from(
+        new Set(b.whitelist.map(normalizeIdentifier).filter(Boolean))
       )
-      if (phones.length > 0) {
+      if (identifiers.length > 0) {
         await db.whitelist.createMany({
-          data: phones.map((phone) => ({ testId: test.id, phone })),
+          data: identifiers.map((identifier) => ({
+            testId: test.id,
+            identifier,
+            identifierType: 'PHONE',
+          })),
           skipDuplicates: true,
         })
       }

@@ -14,10 +14,10 @@ export function fail(message: string, status = 400) {
  * Normalize a participant identifier. Currently identifierType is always PHONE,
  * so we strip spaces/dashes/parentheses and keep digits + leading '+'.
  * (When EMAIL/STUDENT_ID identifier types are added, branch on the type here.)
+ *
+ * Signature is compatible with Array.map (accepts an optional type arg that
+ * defaults to 'PHONE').
  */
-export function normalizeIdentifier(
-  raw: string,
-  _type: string = 'PHONE'
-): string {
+export function normalizeIdentifier(raw: string): string {
   return raw.trim().replace(/[\s\-()]/g, '')
 }

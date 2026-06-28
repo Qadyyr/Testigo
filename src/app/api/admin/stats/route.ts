@@ -65,7 +65,7 @@ export async function GET() {
       id: t.id,
       title: t.title,
       isPublished: t.isPublished,
-      accessMode: t.accessMode as 'PUBLIC' | 'CODE' | 'WHITELIST',
+      accessMode: t.accessMode as 'PUBLIC' | 'WHITELIST' | 'INVITE',
       createdAt: t.createdAt.toISOString(),
       attempts: t._count.attempts,
     }))

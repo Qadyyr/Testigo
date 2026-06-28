@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { ok, fail } from '@/lib/api'
 import { getSessionFromAuthHeader } from '@/lib/session-token'
@@ -94,8 +95,8 @@ export async function POST(
       for (const [questionId, answer] of Object.entries(answers)) {
         await db.response.upsert({
           where: { attemptId_questionId: { attemptId, questionId } },
-          update: { userAnswer: answer ?? null, updatedAt: now },
-          create: { attemptId, questionId, userAnswer: answer ?? null },
+          update: { userAnswer: answer ?? Prisma.JsonNull, updatedAt: now },
+          create: { attemptId, questionId, userAnswer: answer ?? Prisma.JsonNull },
         })
       }
     }

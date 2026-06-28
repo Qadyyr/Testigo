@@ -391,6 +391,7 @@ function DashboardContent({
   loadState: LoadState
   onRetry: () => void
 }) {
+  const { navigate } = useViewRouter()
   const loading = loadState.status === 'loading'
   const error = loadState.status === 'error' ? loadState.message : null
   const data = loadState.status === 'ok' ? loadState.data : null
