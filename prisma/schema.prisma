@@ -82,19 +82,27 @@ model Test {
 
 // ---------------------------------------------------------------------------
 // Question
-// `type` ∈ { "MCQ", "TEXT" }
-// `options`        — JSON: string[] (MCQ). [] for TEXT.
+// `type` ∈ { "MCQ", "TRUE_FALSE", "SHORT" }
+//   - MCQ        → multiple choice (single or multi-correct)
+//   - TRUE_FALSE → binary (auto-generates ["True","False"] options if empty)
+//   - SHORT      → short text answer (auto-graded against acceptable answers)
+// `options`        — JSON: string[] (MCQ / TRUE_FALSE). [] for SHORT.
 // `correctAnswers` — JSON:
-//   - MCQ  → number[] (indices into options)
-//   - TEXT → string[] (acceptable answers; case-insensitive match for auto-grading)
+//   - MCQ / TRUE_FALSE → number[] (indices into options)
+//   - SHORT           → string[] (acceptable answers; case-insensitive match)
+// `explanation`    — optional, shown in the result review to explain why the
+//   answer is correct. Set by admin in the import, never by the participant.
+// `positiveMarks` / `negativeMarks` — default to the test-level values; can be
+//   overridden per-question for advanced use (not exposed in the simple import).
 // ---------------------------------------------------------------------------
 model Question {
   id             String   @id @default(cuid())
   testId         String
   questionText   String
-  type           String   @default("MCQ") // MCQ | TEXT
+  type           String   @default("MCQ") // MCQ | TRUE_FALSE | SHORT
   options        Json // string[]
   correctAnswers Json // number[] | string[]
+  explanation    String?
   positiveMarks  Float    @default(1)
   negativeMarks  Float    @default(0)
   order          Int      @default(0)

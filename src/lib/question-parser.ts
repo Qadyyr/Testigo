@@ -5,8 +5,16 @@
  * validates EVERY row, and returns the valid questions plus a list of errors
  * (with row number + excerpt) so the admin can fix and re-upload.
  *
- * This is the "Dry Run" engine: nothing is written to the DB here. The create
- * endpoint receives the already-validated questions.
+ * SIMPLIFIED FORMAT — the import contains ONLY:
+ *   - questionText   (the question)
+ *   - type           (MCQ | TRUE_FALSE | SHORT)
+ *   - options        (for MCQ/TRUE_FALSE; omitted for SHORT)
+ *   - correctAnswers (option index/indices for MCQ/TRUE_FALSE; acceptable
+ *                     strings for SHORT)
+ *   - explanation    (optional — shown in the result review)
+ *
+ * Marks (positive/negative) are NOT in the import — they are test-level
+ * settings configured in Step 2 of the wizard and applied to all questions.
  * =============================================================================
  *
  * SUPPORTED FORMATS
@@ -18,27 +26,32 @@
  *        "type": "MCQ",
  *        "options": ["1","2","3","4"],
  *        "correctAnswers": [3],
- *        "positiveMarks": 1,
- *        "negativeMarks": 0
+ *        "explanation": "2+2 = 4."
+ *      },
+ *      {
+ *        "questionText": "The Earth is flat.",
+ *        "type": "TRUE_FALSE",
+ *        "correctAnswers": [1],
+ *        "explanation": "The Earth is an oblate spheroid."
  *      },
  *      {
  *        "questionText": "Capital of France?",
- *        "type": "TEXT",
+ *        "type": "SHORT",
  *        "correctAnswers": ["Paris","paris"],
- *        "positiveMarks": 1
+ *        "explanation": "Paris has been the capital of France since 987 AD."
  *      }
  *    ]
  *    - type defaults to "MCQ" if omitted.
- *    - positiveMarks defaults to 1, negativeMarks to 0.
+ *    - TRUE_FALSE with no options auto-generates ["True","False"].
  *
  * 2) CSV — header row required:
- *    questionText,type,options,correctAnswers,positiveMarks,negativeMarks
- *    "What is 2+2?",MCQ,"1;2;3;4","3",1,0
- *    "Capital of France?",TEXT,,"Paris|paris",1,0
- *    - options: semicolon-separated (for MCQ). Empty for TEXT.
- *    - correctAnswers: semicolon-separated 0-based indices (MCQ) OR
- *      pipe-separated acceptable strings (TEXT).
- *    - Quoted fields support commas and escaped quotes ("").
+ *    questionText,type,options,correctAnswers,explanation
+ *    "What is 2+2?",MCQ,"1;2;3;4","3","2+2 = 4."
+ *    "The Earth is flat.",TRUE_FALSE,,"1","Earth is round."
+ *    "Capital of France?",SHORT,,"Paris|paris","Paris since 987 AD."
+ *    - options: semicolon-separated (MCQ). Empty for SHORT/TRUE_FALSE.
+ *    - correctAnswers: semicolon-separated indices (MCQ/TRUE_FALSE) OR
+ *      pipe-separated strings (SHORT).
  *
  * 3) Markdown — each question starts with "### ":
  *    ### What is 2+2?
@@ -46,33 +59,37 @@
  *    - [ ] 2
  *    - [ ] 3
  *    - [x] 4
- *    marks: 1
+ *    > 2+2 = 4.
+ *
+ *    ### The Earth is flat.
+ *    type: true_false
+ *    - [x] False
+ *    - [ ] True
+ *    > The Earth is an oblate spheroid.
  *
  *    ### Capital of France?
- *    type: text
+ *    type: short
  *    answer: Paris
  *    answer: paris
- *    marks: 1
- *    neg: 0.25
- *    - MCQ options use `- [ ]` (wrong) and `- [x]` (correct).
- *    - TEXT questions use `type: text` and one or more `answer:` lines.
- *    - `marks:` sets positiveMarks; `neg:` sets negativeMarks.
+ *    > Paris has been the capital since 987 AD.
+ *    - MCQ/TRUE_FALSE options use `- [ ]` (wrong) and `- [x]` (correct).
+ *    - SHORT questions use `type: short` and one or more `answer:` lines.
+ *    - The `> ` line after the question/options is the explanation.
  */
 
-export type QuestionType = 'MCQ' | 'TEXT'
+export type QuestionType = 'MCQ' | 'TRUE_FALSE' | 'SHORT'
 
 export interface ParsedQuestion {
   questionText: string
   type: QuestionType
-  options: string[] // MCQ only; [] for TEXT
-  correctAnswers: number[] | string[] // indices (MCQ) | strings (TEXT)
-  positiveMarks: number
-  negativeMarks: number
+  options: string[] // MCQ / TRUE_FALSE; [] for SHORT
+  correctAnswers: number[] | string[] // indices (MCQ/TRUE_FALSE) | strings (SHORT)
+  explanation: string | null
 }
 
 export interface ParseError {
-  row: number // 1-indexed (CSV/MD line number, or JSON array index + 1)
-  excerpt: string // first ~60 chars of the question/row, for context
+  row: number // 1-indexed
+  excerpt: string // first ~60 chars of the question/row
   error: string
 }
 
@@ -114,92 +131,92 @@ function makeExcerpt(text: string): string {
   return t.length > 60 ? t.slice(0, 60) + '…' : t
 }
 
-/** Validate a single candidate question; returns {ok, question?, error?}. */
+function normalizeType(raw: unknown): QuestionType | null {
+  if (raw === undefined || raw === null || raw === '') return 'MCQ'
+  const t = String(raw).trim().toUpperCase().replace(/[-\s]/g, '_')
+  if (t === 'MCQ' || t === 'MULTIPLE' || t === 'MULTIPLE_CHOICE') return 'MCQ'
+  if (t === 'TRUE_FALSE' || t === 'TRUEFALSE' || t === 'TF' || t === 'BOOLEAN')
+    return 'TRUE_FALSE'
+  if (t === 'SHORT' || t === 'SHORT_ANSWER' || t === 'TEXT') return 'SHORT'
+  return null
+}
+
+/** Validate a single candidate question. */
 function validateQuestion(raw: {
   questionText?: unknown
   type?: unknown
   options?: unknown
   correctAnswers?: unknown
-  positiveMarks?: unknown
-  negativeMarks?: unknown
+  explanation?: unknown
 }): { ok: true; question: ParsedQuestion } | { ok: false; error: string } {
   const questionText =
     typeof raw.questionText === 'string' ? raw.questionText.trim() : ''
   if (!questionText) {
-    return { ok: false, error: 'Missing question_text' }
+    return { ok: false, error: 'Missing question text' }
   }
 
-  let type: QuestionType = 'MCQ'
-  if (raw.type !== undefined && raw.type !== null) {
-    const t = String(raw.type).trim().toUpperCase()
-    if (t !== 'MCQ' && t !== 'TEXT') {
-      return { ok: false, error: `Invalid type "${raw.type}" (use MCQ or TEXT)` }
-    }
-    type = t
+  const type = normalizeType(raw.type)
+  if (!type) {
+    return { ok: false, error: `Invalid type "${raw.type}" (use MCQ, TRUE_FALSE, or SHORT)` }
   }
 
-  const positiveMarks = toNumber(raw.positiveMarks, 1)
-  const negativeMarks = toNumber(raw.negativeMarks, 0)
-  if (positiveMarks < 0) {
-    return { ok: false, error: 'positiveMarks must be ≥ 0' }
-  }
-  if (negativeMarks < 0) {
-    return { ok: false, error: 'negativeMarks must be ≥ 0' }
-  }
+  const explanation =
+    typeof raw.explanation === 'string' && raw.explanation.trim()
+      ? raw.explanation.trim()
+      : null
 
-  if (type === 'MCQ') {
-    const options = toStringArray(raw.options)
-    if (options.length < 2) {
-      return { ok: false, error: 'MCQ needs at least 2 options' }
-    }
-    const correct = toNumberArray(raw.correctAnswers)
-    if (correct.length === 0) {
-      return { ok: false, error: 'Missing correct_answers array' }
-    }
-    for (const idx of correct) {
-      if (!Number.isInteger(idx) || idx < 0 || idx >= options.length) {
-        return {
-          ok: false,
-          error: `correct_answer index ${idx} out of range (0..${options.length - 1})`,
-        }
-      }
+  if (type === 'SHORT') {
+    const answers = toStringArray(raw.correctAnswers)
+    if (answers.length === 0) {
+      return { ok: false, error: 'SHORT question needs at least one acceptable answer' }
     }
     return {
       ok: true,
       question: {
         questionText,
-        type,
-        options,
-        correctAnswers: correct,
-        positiveMarks,
-        negativeMarks,
+        type: 'SHORT',
+        options: [],
+        correctAnswers: answers,
+        explanation,
       },
     }
   }
 
-  // TEXT
-  const answers = toStringArray(raw.correctAnswers)
-  if (answers.length === 0) {
-    return { ok: false, error: 'TEXT question needs at least one correct answer' }
+  // MCQ or TRUE_FALSE
+  let options = toStringArray(raw.options)
+  if (type === 'TRUE_FALSE' && options.length === 0) {
+    options = ['True', 'False'] // auto-generate
+  }
+  if (options.length < 2) {
+    return {
+      ok: false,
+      error: `${type} needs at least 2 options`,
+    }
+  }
+  const correct = toNumberArray(raw.correctAnswers)
+  if (correct.length === 0) {
+    return { ok: false, error: 'Missing correct answer (correctAnswers)' }
+  }
+  for (const idx of correct) {
+    if (!Number.isInteger(idx) || idx < 0 || idx >= options.length) {
+      return {
+        ok: false,
+        error: `correct answer index ${idx} out of range (0..${options.length - 1})`,
+      }
+    }
   }
   return {
     ok: true,
     question: {
       questionText,
-      type: 'TEXT',
-      options: [],
-      correctAnswers: answers,
-      positiveMarks,
-      negativeMarks,
+      type,
+      options,
+      correctAnswers: correct,
+      explanation,
     },
   }
 }
 
-function toNumber(v: unknown, fallback: number): number {
-  if (v === undefined || v === null || v === '') return fallback
-  const n = Number(v)
-  return Number.isFinite(n) ? n : fallback
-}
 function toStringArray(v: unknown): string[] {
   if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean)
   if (typeof v === 'string') {
@@ -282,7 +299,6 @@ function parseJson(content: string): DryRunResult {
 
 // ---- CSV parser ------------------------------------------------------------
 
-/** RFC-4180-ish single-line CSV parser (handles quoted fields + "" escapes). */
 function parseCsvLine(line: string): string[] {
   const fields: string[] = []
   let cur = ''
@@ -333,8 +349,7 @@ function parseCsv(content: string): DryRunResult {
   const iType = idx('type')
   const iOpt = idx('options')
   const iAns = idx('correctanswers')
-  const iPos = idx('positivemarks')
-  const iNeg = idx('negativemarks')
+  const iExp = idx('explanation')
 
   if (iQ === -1) {
     return {
@@ -344,7 +359,7 @@ function parseCsv(content: string): DryRunResult {
           row: 1,
           excerpt: lines[0].slice(0, 60),
           error:
-            'CSV header must contain a "questionText" column (required columns: questionText,type,options,correctAnswers,positiveMarks,negativeMarks)',
+            'CSV header must contain a "questionText" column (required: questionText,type,options,correctAnswers,explanation)',
         },
       ],
       total: 0,
@@ -355,12 +370,16 @@ function parseCsv(content: string): DryRunResult {
   const errors: ParseError[] = []
 
   for (let r = 1; r < lines.length; r++) {
-    const rowNumber = r + 1 // header is line 1
+    const rowNumber = r + 1
     const cells = parseCsvLine(lines[r])
 
-    // For TEXT questions, correctAnswers are pipe-separated strings.
     const typeRaw = iType !== -1 ? cells[iType]?.trim() : ''
-    const isText = typeRaw.toUpperCase() === 'TEXT'
+    const isShort =
+      typeRaw.toUpperCase().replace(/[-\s]/g, '_') === 'SHORT' ||
+      typeRaw.toUpperCase() === 'TEXT'
+    const isTrueFalse =
+      typeRaw.toUpperCase().replace(/[-\s]/g, '_') === 'TRUE_FALSE' ||
+      typeRaw.toUpperCase() === 'TF'
 
     const raw = {
       questionText: cells[iQ],
@@ -368,15 +387,19 @@ function parseCsv(content: string): DryRunResult {
       options: iOpt !== -1 ? cells[iOpt] : '',
       correctAnswers:
         iAns !== -1
-          ? isText
+          ? isShort
             ? (cells[iAns] ?? '')
                 .split('|')
                 .map((s) => s.trim())
                 .filter(Boolean)
             : cells[iAns]
           : undefined,
-      positiveMarks: iPos !== -1 ? cells[iPos] : undefined,
-      negativeMarks: iNeg !== -1 ? cells[iNeg] : undefined,
+      explanation: iExp !== -1 ? cells[iExp] : undefined,
+    }
+
+    // For TRUE_FALSE with empty options, let validateQuestion auto-generate.
+    if (isTrueFalse && raw.options === '') {
+      raw.options = [] as unknown as string
     }
 
     const res = validateQuestion(raw)
@@ -399,7 +422,6 @@ function parseCsv(content: string): DryRunResult {
 function parseMarkdown(content: string): DryRunResult {
   const lines = content.replace(/\r\n/g, '\n').split('\n')
 
-  // Split into blocks starting with "### "
   const blocks: { startLine: number; lines: string[] }[] = []
   let current: { startLine: number; lines: string[] } | null = null
   lines.forEach((line, i) => {
@@ -437,12 +459,17 @@ function parseMarkdown(content: string): DryRunResult {
     const options: { text: string; correct: boolean }[] = []
     const answers: string[] = []
     let type: QuestionType | null = null
-    let positiveMarks: number | undefined
-    let negativeMarks: number | undefined
+    let explanation: string | null = null
 
     for (let i = 1; i < block.lines.length; i++) {
       const line = block.lines[i].trim()
       if (!line) continue
+
+      // Explanation: a blockquote line "> ..."
+      if (line.startsWith('>')) {
+        explanation = line.replace(/^>\s?/, '').trim()
+        continue
+      }
 
       const mcqMatch = line.match(/^-\s*\[([ xX])\]\s+(.*)$/)
       if (mcqMatch) {
@@ -454,45 +481,39 @@ function parseMarkdown(content: string): DryRunResult {
         continue
       }
 
-      const m = line.match(/^([a-zA-Z]+):\s*(.*)$/)
+      const m = line.match(/^([a-zA-Z_]+):\s*(.*)$/)
       if (m) {
         const key = m[1].toLowerCase()
         const val = m[2].trim()
         if (key === 'type') {
-          const t = val.toUpperCase()
-          if (t === 'TEXT' || t === 'MCQ') type = t
+          const t = normalizeType(val)
+          if (t) type = t
         } else if (key === 'answer') {
-          if (type === null) type = 'TEXT'
-          if (type === 'TEXT') answers.push(val)
-        } else if (key === 'marks' || key === 'positivemarks') {
-          positiveMarks = Number(val)
-        } else if (key === 'neg' || key === 'negativemarks') {
-          negativeMarks = Number(val)
+          if (type === null) type = 'SHORT'
+          if (type === 'SHORT') answers.push(val)
         }
       }
     }
 
-    if (type === null) type = options.length > 0 ? 'MCQ' : 'TEXT'
+    if (type === null) type = options.length > 0 ? 'MCQ' : 'SHORT'
 
     const raw =
-      type === 'MCQ'
+      type === 'SHORT'
         ? {
             questionText,
-            type: 'MCQ' as const,
+            type: 'SHORT' as const,
+            options: [],
+            correctAnswers: answers,
+            explanation,
+          }
+        : {
+            questionText,
+            type: type as 'MCQ' | 'TRUE_FALSE',
             options: options.map((o) => o.text),
             correctAnswers: options
               .map((o, i) => (o.correct ? i : -1))
               .filter((i) => i >= 0),
-            positiveMarks,
-            negativeMarks,
-          }
-        : {
-            questionText,
-            type: 'TEXT' as const,
-            options: [],
-            correctAnswers: answers,
-            positiveMarks,
-            negativeMarks,
+            explanation,
           }
 
     const res = validateQuestion(raw)
@@ -512,18 +533,20 @@ function parseMarkdown(content: string): DryRunResult {
 
 // ---- sample content (for the wizard's "Load sample" button) ----------------
 
-export const SAMPLE_CSV = `questionText,type,options,correctAnswers,positiveMarks,negativeMarks
-"What is 2 + 2?",MCQ,"1;2;3;4","3",1,0
-"Capital of France?",TEXT,,"Paris|paris",1,0
-"Which are prime?",MCQ,"2;4;7;9","0;2",2,0.5
-"Broken row missing answer",MCQ,"A;B;C","",1,0
+export const SAMPLE_CSV = `questionText,type,options,correctAnswers,explanation
+"What is 2 + 2?",MCQ,"1;2;3;4","3","2 + 2 = 4."
+"The Earth is flat.",TRUE_FALSE,,"1","The Earth is an oblate spheroid."
+"Capital of France?",SHORT,,"Paris|paris","Paris has been France's capital since 987 AD."
+"Which are prime?",MCQ,"2;4;7;9","0;2","2 and 7 are prime; 4 and 9 are not."
+"Broken row — no answer",MCQ,"A;B;C","","This should show an error."
 `
 
 export const SAMPLE_JSON = `[
-  { "questionText": "What is 2 + 2?", "type": "MCQ", "options": ["1","2","3","4"], "correctAnswers": [3], "positiveMarks": 1, "negativeMarks": 0 },
-  { "questionText": "Capital of France?", "type": "TEXT", "correctAnswers": ["Paris","paris"], "positiveMarks": 1, "negativeMarks": 0 },
-  { "questionText": "Which are prime?", "type": "MCQ", "options": ["2","4","7","9"], "correctAnswers": [0,2], "positiveMarks": 2, "negativeMarks": 0.5 },
-  { "questionText": "", "type": "MCQ", "options": ["A","B"], "correctAnswers": [0], "positiveMarks": 1, "negativeMarks": 0 }
+  { "questionText": "What is 2 + 2?", "type": "MCQ", "options": ["1","2","3","4"], "correctAnswers": [3], "explanation": "2 + 2 = 4." },
+  { "questionText": "The Earth is flat.", "type": "TRUE_FALSE", "correctAnswers": [1], "explanation": "The Earth is an oblate spheroid." },
+  { "questionText": "Capital of France?", "type": "SHORT", "correctAnswers": ["Paris","paris"], "explanation": "Paris has been France's capital since 987 AD." },
+  { "questionText": "Which are prime?", "type": "MCQ", "options": ["2","4","7","9"], "correctAnswers": [0,2], "explanation": "2 and 7 are prime; 4 and 9 are not." },
+  { "questionText": "", "type": "MCQ", "options": ["A","B"], "correctAnswers": [0], "explanation": "This row has no question text — should error." }
 ]
 `
 
@@ -532,25 +555,30 @@ export const SAMPLE_MD = `### What is 2 + 2?
 - [ ] 2
 - [ ] 3
 - [x] 4
-marks: 1
+> 2 + 2 = 4.
+
+### The Earth is flat.
+type: true_false
+- [ ] True
+- [x] False
+> The Earth is an oblate spheroid.
 
 ### Capital of France?
-type: text
+type: short
 answer: Paris
 answer: paris
-marks: 1
+> Paris has been France's capital since 987 AD.
 
 ### Which are prime?
 - [x] 2
 - [ ] 4
 - [x] 7
 - [ ] 9
-marks: 2
-neg: 0.5
+> 2 and 7 are prime; 4 and 9 are not.
 
-### Broken row missing answer
+### Broken row — no answer marked
 - [ ] A
 - [ ] B
 - [ ] C
-marks: 1
+> This should show an error (no correct option marked).
 `

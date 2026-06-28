@@ -10,11 +10,10 @@ export const dynamic = 'force-dynamic'
 
 const questionSchema = z.object({
   questionText: z.string().min(1),
-  type: z.enum(['MCQ', 'TEXT']),
+  type: z.enum(['MCQ', 'TRUE_FALSE', 'SHORT']),
   options: z.array(z.string()),
   correctAnswers: z.array(z.union([z.number(), z.string()])),
-  positiveMarks: z.number().min(0),
-  negativeMarks: z.number().min(0),
+  explanation: z.string().nullable().optional(),
 })
 
 const bodySchema = z.object({
@@ -29,6 +28,7 @@ const bodySchema = z.object({
   accessCode: z.string().min(1).max(100).optional(),
   maxAttempts: z.number().int().min(1).default(1),
   resultReleaseMode: z.enum(['IMMEDIATE', 'MANUAL', 'NEVER']).default('IMMEDIATE'),
+  // Test-level marks — applied to ALL questions (not in the import format).
   positiveMarks: z.number().min(0).default(1),
   negativeMarks: z.number().min(0).default(0),
   isPublished: z.boolean().default(false),
@@ -106,8 +106,10 @@ export async function POST(req: Request) {
             type: q.type,
             options: q.options,
             correctAnswers: q.correctAnswers,
-            positiveMarks: q.positiveMarks,
-            negativeMarks: q.negativeMarks,
+            explanation: q.explanation,
+            // Use test-level marks for all questions.
+            positiveMarks: b.positiveMarks,
+            negativeMarks: b.negativeMarks,
             order: i,
           })),
         },

@@ -84,7 +84,7 @@ interface StartResponse {
 interface LoadQuestion {
   id: string
   questionText: string
-  type: 'MCQ' | 'TEXT'
+  type: 'MCQ' | 'TRUE_FALSE' | 'SHORT'
   options: string[]
   positiveMarks: number
   negativeMarks: number
@@ -116,6 +116,7 @@ interface GradedAnswer {
   marksAwarded: number | null
   positiveMarks: number
   negativeMarks: number
+  explanation: string | null
 }
 interface ResultData {
   score: number
@@ -996,7 +997,7 @@ function Taking({
               </div>
             </CardHeader>
             <CardContent>
-              {q.type === 'MCQ' ? (
+              {q.type === 'MCQ' || q.type === 'TRUE_FALSE' ? (
                 <MCQInput
                   options={q.options}
                   selected={(store.answers[q.id] as number[]) ?? []}
@@ -1301,7 +1302,7 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
               const correct: number[] = Array.isArray(a.correctAnswers)
                 ? (a.correctAnswers as number[])
                 : []
-              const isMcq = a.type === 'MCQ'
+              const isMcq = a.type === 'MCQ' || a.type === 'TRUE_FALSE'
               return (
                 <div key={a.questionId} className="rounded-lg border p-4">
                   <div className="mb-3 flex items-start gap-3">
@@ -1381,6 +1382,13 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
                           {(a.correctAnswers as string[]).join(', ')}
                         </p>
                       </div>
+                    </div>
+                  )}
+
+                  {a.explanation && (
+                    <div className="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/20 p-3 pl-10 text-sm">
+                      <span className="text-xs font-medium text-muted-foreground">Explanation</span>
+                      <p className="flex-1 text-muted-foreground">{a.explanation}</p>
                     </div>
                   )}
                 </div>

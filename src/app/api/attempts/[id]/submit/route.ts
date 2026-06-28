@@ -127,6 +127,7 @@ export async function POST(
       marksAwarded: number | null
       positiveMarks: number
       negativeMarks: number
+      explanation: string | null
     }> = []
 
     for (const q of questions) {
@@ -137,7 +138,7 @@ export async function POST(
 
       maxMarks += q.positiveMarks
 
-      if (q.type === 'MCQ') {
+      if (q.type === 'MCQ' || q.type === 'TRUE_FALSE') {
         const selected = (userAnswer as number[] | null) ?? []
         // Grading logic: exact match (or partial if test.partialMarks).
         const correctSet = new Set(correctIdx)
@@ -176,15 +177,15 @@ export async function POST(
           marksAwarded: marks,
           positiveMarks: q.positiveMarks,
           negativeMarks: q.negativeMarks,
+          explanation: q.explanation,
         })
         await db.response.update({
           where: { attemptId_questionId: { attemptId, questionId: q.id } },
           data: { isCorrect, marksAwarded: marks },
         })
       } else {
-        // TEXT — pending manual review. Auto-match against acceptable answers
-        // as a convenience (marks a quick win if exact match), but leave
-        // marksAwarded null so the teacher can override.
+        // SHORT (short text answer) — auto-match against acceptable answers
+        // as a convenience; leave marksAwarded null for teacher override.
         const acceptable = parseJsonArray(q.correctAnswers)
         const textAnswer = (userAnswer as string | null)?.trim().toLowerCase() ?? ''
         const autoMatch = textAnswer !== '' && acceptable.some((a) => a.trim().toLowerCase() === textAnswer)
@@ -200,6 +201,7 @@ export async function POST(
           marksAwarded: null,
           positiveMarks: q.positiveMarks,
           negativeMarks: q.negativeMarks,
+          explanation: q.explanation,
         })
         await db.response.update({
           where: { attemptId_questionId: { attemptId, questionId: q.id } },

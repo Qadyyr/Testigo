@@ -730,10 +730,10 @@ function Step1Details({
             onChange={(e) => onContentChange(e.target.value)}
             placeholder={
               format === 'md'
-                ? '### Question text\n- [ ] option A\n- [x] option B\nmarks: 1'
+                ? '### Question text\n- [ ] option A\n- [x] option B\n> Explanation (optional)'
                 : format === 'csv'
-                  ? 'questionText,type,options,correctAnswers,positiveMarks,negativeMarks\n"What is 2+2?",MCQ,"1;2;3;4","3",1,0'
-                  : '[\n  { "questionText": "What is 2+2?", "type": "MCQ", "options": ["1","2","3","4"], "correctAnswers": [3], "positiveMarks": 1, "negativeMarks": 0 }\n]'
+                  ? 'questionText,type,options,correctAnswers,explanation\n"What is 2+2?",MCQ,"1;2;3;4","3","2+2 = 4."'
+                  : '[\n  { "questionText": "What is 2+2?", "type": "MCQ", "options": ["1","2","3","4"], "correctAnswers": [3], "explanation": "2+2 = 4." }\n]'
             }
             rows={12}
             className="resize-y font-mono text-xs leading-relaxed"
@@ -1019,7 +1019,7 @@ function Step2Settings({
             Marking &amp; attempts
           </CardTitle>
           <CardDescription>
-            Default per-question marks; each question can override.
+            Marks awarded for every question in this test.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
