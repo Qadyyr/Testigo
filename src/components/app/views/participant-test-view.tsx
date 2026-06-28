@@ -1039,7 +1039,9 @@ function Taking({
               {q.type === 'MCQ' || q.type === 'TRUE_FALSE' ? (
                 <MCQInput
                   options={q.options}
-                  selected={(store.answers[q.id] as number[]) ?? []}
+                  selected={Array.isArray(store.answers[q.id])
+                    ? (store.answers[q.id] as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n))
+                    : []}
                   onChange={(sel) => {
                     store.setAnswer(q.id, sel)
                     saveAnswer(q.id)
@@ -1424,11 +1426,12 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {result.answers.map((a, i) => {
+              // Normalize to numbers — JSON may return ["1"] instead of [1].
               const userSel: number[] = Array.isArray(a.userAnswer)
-                ? (a.userAnswer as number[])
+                ? (a.userAnswer as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n))
                 : []
               const correct: number[] = Array.isArray(a.correctAnswers)
-                ? (a.correctAnswers as number[])
+                ? (a.correctAnswers as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n))
                 : []
               const isMcq = a.type === 'MCQ' || a.type === 'TRUE_FALSE'
               return (

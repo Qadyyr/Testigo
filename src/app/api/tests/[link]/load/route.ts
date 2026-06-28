@@ -69,8 +69,16 @@ export async function GET(
     if (!attempt) return fail('Attempt not found', 404)
 
     // Build answers map: { questionId: userAnswer }
+    // Normalize MCQ answer arrays to numbers (Prisma JSON may return ["1"] not [1]).
     const answers: Record<string, unknown> = {}
-    for (const r of responses) answers[r.questionId] = r.userAnswer
+    for (const r of responses) {
+      const ans = r.userAnswer
+      if (Array.isArray(ans)) {
+        answers[r.questionId] = ans.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+      } else {
+        answers[r.questionId] = ans
+      }
+    }
 
     return ok({
       test: {

@@ -139,7 +139,9 @@ export async function POST(
       maxMarks += q.positiveMarks
 
       if (q.type === 'MCQ' || q.type === 'TRUE_FALSE') {
-        const selected = (userAnswer as number[] | null) ?? []
+        // Normalize to numbers — Prisma JSON may return ["1"] instead of [1].
+        const rawSelected = Array.isArray(userAnswer) ? userAnswer : []
+        const selected: number[] = rawSelected.map((n) => Number(n)).filter((n) => Number.isFinite(n))
         // Grading logic: exact match (or partial if test.partialMarks).
         const correctSet = new Set(correctIdx)
         const selectedSet = new Set(selected)
@@ -171,7 +173,7 @@ export async function POST(
           questionText: q.questionText,
           type: q.type,
           options: opts,
-          userAnswer: (userAnswer as number[] | null) ?? null,
+          userAnswer: selected.length > 0 ? selected : null,
           correctAnswers: correctIdx,
           isCorrect,
           marksAwarded: marks,
