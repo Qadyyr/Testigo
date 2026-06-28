@@ -812,7 +812,7 @@ export function AdminDashboardView() {
           onRetry={() => setRetryKey((k) => k + 1)}
         />
       )}
-      {section === 'tests' && <TestsContent navigate={navigate} />}
+      {section === 'tests' && <TestsContent navigate={navigate} isSuperAdmin={isSuperAdmin} />}
       {section === 'analytics' && <AnalyticsOverviewContent navigate={navigate} />}
       {section === 'settings' && <SettingsContent />}
       {section === 'admins' && isSuperAdmin && <AdminsContent />}
@@ -835,12 +835,14 @@ interface TestItem {
   resultReleaseMode: 'IMMEDIATE' | 'MANUAL' | 'NEVER'
   createdAt: string
   shareableLink: string
+  ownerName?: string
+  ownerEmail?: string
   attemptCount: number
   questionCount: number
 }
 interface TestsResponse { success: boolean; data?: TestItem[]; message?: string }
 
-function TestsContent({ navigate }: { navigate: (view?: string, extra?: Record<string, string>) => void }) {
+function TestsContent({ navigate, isSuperAdmin }: { navigate: (view?: string, extra?: Record<string, string>) => void; isSuperAdmin?: boolean }) {
   const [tests, setTests] = useState<TestItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -966,6 +968,11 @@ function TestsContent({ navigate }: { navigate: (view?: string, extra?: Record<s
                     </Badge>
                     {t.accessCode && (
                       <Badge variant="outline" className="font-mono text-xs">{t.accessCode}</Badge>
+                    )}
+                    {isSuperAdmin && t.ownerName && (
+                      <Badge variant="outline" className="text-xs">
+                        <Users className="size-2.5" /> {t.ownerName}
+                      </Badge>
                     )}
                   </div>
                   <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
@@ -1253,6 +1260,12 @@ function AdminsContent() {
   const [admins, setAdmins] = useState<AdminItem[]>([])
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState<string | null>(null)
+  // Create-admin form state
+  const [showCreate, setShowCreate] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [creating, setCreating] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -1267,6 +1280,36 @@ function AdminsContent() {
     }
   }
   useEffect(() => { load() }, [])
+
+  async function handleCreate(e: FormEvent) {
+    e.preventDefault()
+    if (!newName.trim() || !newEmail.trim() || !newPassword.trim()) {
+      toast.error('Fill in all fields')
+      return
+    }
+    setCreating(true)
+    try {
+      const res = await fetch('/api/admin/admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ name: newName.trim(), email: newEmail.trim(), password: newPassword }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        toast.success('Admin account created')
+        setNewName(''); setNewEmail(''); setNewPassword('')
+        setShowCreate(false)
+        load()
+      } else {
+        toast.error(json.message ?? 'Could not create account')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setCreating(false)
+    }
+  }
 
   async function handleAction(id: string, action: 'approve' | 'reject' | 'promote' | 'demote' | 'delete') {
     setActing(id + action)
@@ -1302,6 +1345,47 @@ function AdminsContent() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Add admin button / form */}
+      <div className="flex justify-end">
+        {showCreate ? (
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle className="text-base">Create admin account</CardTitle>
+              <CardDescription>The account will be immediately approved and can log in.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+                <div className="flex flex-col gap-1.5 sm:flex-1">
+                  <Label htmlFor="new-name" className="text-xs">Name</Label>
+                  <Input id="new-name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Full name" disabled={creating} />
+                </div>
+                <div className="flex flex-col gap-1.5 sm:flex-1">
+                  <Label htmlFor="new-email" className="text-xs">Email</Label>
+                  <Input id="new-email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="you@example.com" disabled={creating} />
+                </div>
+                <div className="flex flex-col gap-1.5 sm:flex-1">
+                  <Label htmlFor="new-pass" className="text-xs">Password</Label>
+                  <Input id="new-pass" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 8 chars" disabled={creating} />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={creating} className="bg-emerald-600 text-white hover:bg-emerald-700">
+                    {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                    Create
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowCreate(false)} disabled={creating}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : (
+          <Button onClick={() => setShowCreate(true)} className="bg-emerald-600 text-white hover:bg-emerald-700">
+            <Plus className="size-4" /> Add admin
+          </Button>
+        )}
+      </div>
+
       {/* Pending requests */}
       {pending.length > 0 && (
         <Card>
@@ -1372,22 +1456,20 @@ function AdminsContent() {
                 </div>
                 <p className="text-xs text-muted-foreground">{a.email}</p>
               </div>
-              {a.status === 'APPROVED' && (
+              {a.status === 'APPROVED' && a.role !== 'SUPER_ADMIN' && (
                 <div className="flex shrink-0 gap-1.5">
-                  {a.role === 'ADMIN' && (
-                    <Button size="sm" variant="outline" onClick={() => handleAction(a.id, 'promote')} disabled={!!acting}>
-                      Promote
-                    </Button>
-                  )}
-                  {a.role === 'SUPER_ADMIN' && (
-                    <Button size="sm" variant="outline" onClick={() => handleAction(a.id, 'demote')} disabled={!!acting}>
-                      Demote
-                    </Button>
-                  )}
+                  <Button size="sm" variant="outline" onClick={() => handleAction(a.id, 'promote')} disabled={!!acting}>
+                    Promote
+                  </Button>
                   <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleAction(a.id, 'delete')} disabled={!!acting}>
                     {acting === a.id + 'delete' ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
                   </Button>
                 </div>
+              )}
+              {a.status === 'APPROVED' && a.role === 'SUPER_ADMIN' && (
+                <Badge variant="outline" className="shrink-0 gap-1 text-xs text-muted-foreground">
+                  <ShieldCheck className="size-3" /> Locked
+                </Badge>
               )}
             </div>
           ))}

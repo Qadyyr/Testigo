@@ -36,13 +36,14 @@ export async function PATCH(
     }
     const { action } = parsed.data
 
-    // Prevent self-modification (can't demote/delete yourself).
-    if (id === session.user.id && (action === 'demote' || action === 'delete')) {
-      return fail('You cannot demote or delete your own account', 400)
-    }
-
+    // Protect Super Admin accounts: can't demote or delete them (ever).
+    // This is the platform owner — the role is permanent.
     const target = await db.admin.findUnique({ where: { id } })
     if (!target) return fail('Admin not found', 404)
+
+    if (target.role === 'SUPER_ADMIN' && (action === 'demote' || action === 'delete')) {
+      return fail('Super Admin accounts cannot be demoted or deleted', 400)
+    }
 
     switch (action) {
       case 'approve':

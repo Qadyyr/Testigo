@@ -42,6 +42,8 @@ export async function GET() {
         resultReleaseMode: true,
         createdAt: true,
         shareableLink: true,
+        createdBy: true,
+        admin: { select: { name: true, email: true } },
         _count: {
           select: { attempts: true, questions: true },
         },
@@ -63,6 +65,8 @@ export async function GET() {
         resultReleaseMode: t.resultReleaseMode as 'IMMEDIATE' | 'MANUAL' | 'NEVER',
         createdAt: t.createdAt.toISOString(),
         shareableLink: t.shareableLink,
+        ownerName: t.admin.name ?? t.admin.email,
+        ownerEmail: t.admin.email,
         attemptCount: t._count.attempts,
         questionCount: t._count.questions,
       })),
