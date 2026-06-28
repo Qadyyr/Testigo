@@ -214,3 +214,19 @@ Work Log:
 
 Stage Summary:
 - Live at https://testigo-beryl.vercel.app verified: pubdemo → start → answer → submit → result "100% — 2 of 2 correct" with explanations shown in review for both questions. Lint clean, tsc clean. Import format is now simple (5 fields only); marks are test-level; 3 question types supported.
+
+---
+Task ID: 13
+Agent: orchestrator (main)
+Task: Simplify home page — students access tests via unique code or direct link (no phone lookup).
+
+Work Log:
+- New POST /api/tests/resolve-code: accepts { code }, finds published test by accessCode, returns shareableLink. Removed old /api/tests/lookup + /api/tests/resolve (phone-based).
+- Home view rewritten: single input "Enter test code or paste link". If URL with ?t=xxx → navigate direct. If code → POST resolve-code → navigate. Code stored in sessionStorage for gate to pre-fill. Terminal accent updated to code-based flow.
+- accessCode is now REQUIRED on every test (it's the join code students use). requireCode toggle renamed to "Require code at the gate" (optional extra security). Create API stores accessCode always; wizard Step 3 shows code field always + separate toggle.
+- Participant gate: pre-fills code from sessionStorage('testigo:code') if entered on home page. Removed old 'testigo:identifier' references.
+- Seed: pubdemo now has code PUB2024. All 3 tests accessible via code (GK2024/APT2024/PUB2024) or direct link.
+- Re-seeded Neon, pushed to GitHub, Vercel auto-deployed.
+
+Stage Summary:
+- Live verified: home → enter "PUB2024" → opens pubdemo → start → answer → submit → "100% — 2 of 2 correct" with explanations. The phone-lookup flow is gone; students just enter a code or use a link. Lint + tsc clean.
