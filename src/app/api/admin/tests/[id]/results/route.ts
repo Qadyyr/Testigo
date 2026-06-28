@@ -45,7 +45,7 @@ export async function GET(
       db.attempt.findMany({
         where: { testId: id, status: { in: ['SUBMITTED', 'AUTO_SUBMITTED'] } },
         include: {
-          participant: { select: { identifier: true } },
+          participant: { select: { identifier: true, name: true } },
           responses: { select: { questionId: true, isCorrect: true, marksAwarded: true } },
         },
         orderBy: { startTime: 'desc' },
@@ -55,6 +55,7 @@ export async function GET(
     if (format === 'csv') {
       // Build CSV: one row per attempt, columns = identifier, score, status, start, end, Q1, Q2, ...
       const headers = [
+        'Name',
         'Identifier',
         'Score (%)',
         'Status',
@@ -65,6 +66,7 @@ export async function GET(
       const rows = attempts.map((a) => {
         const respMap = new Map(a.responses.map((r) => [r.questionId, r]))
         return [
+          a.participant.name ?? '',
           a.participant.identifier ?? 'anonymous',
           String(a.totalScore ?? 0),
           a.status,
@@ -101,6 +103,7 @@ export async function GET(
         questions: questions.map((q) => ({ id: q.id, text: q.questionText, order: q.order })),
         attempts: attempts.map((a) => ({
           id: a.id,
+          name: a.participant.name,
           identifier: a.participant.identifier ?? 'anonymous',
           score: a.totalScore,
           status: a.status,

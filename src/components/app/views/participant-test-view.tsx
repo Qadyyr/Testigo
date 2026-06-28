@@ -537,6 +537,7 @@ function Gating({
   onAlreadyAttempted: (data: ResultData | null) => void
   sessionToken: string
 }) {
+  const [name, setName] = useState('')
   const [identifier, setIdentifier] = useState('')
   const [code, setCode] = useState(() => {
     try {
@@ -549,21 +550,14 @@ function Gating({
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
 
-  // Auto-start for PUBLIC tests that don't require a code — no fields needed,
-  // so showing the gate is pointless. Skip straight to starting the attempt.
-  const autoStart = test.accessMode === 'PUBLIC' && !test.requireCode
-  const autoStartedRef = useRef(false)
-  useEffect(() => {
-    if (!autoStart || autoStartedRef.current) return
-    autoStartedRef.current = true
-    // Call handleStart without an event.
-    handleStart({ preventDefault: () => {} } as unknown as FormEvent)
-  }, [autoStart])
-
   async function handleStart(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    const body: Record<string, string> = {}
+    if (!name.trim()) {
+      setError('Enter your name to continue.')
+      return
+    }
+    const body: Record<string, string> = { name: name.trim() }
     if (test.accessMode === 'WHITELIST') {
       if (!identifier.trim()) {
         setError('Enter your registered phone number.')
@@ -625,31 +619,34 @@ function Gating({
     }
   }
 
-  // For auto-start (PUBLIC, no code), show a spinner instead of the form.
-  if (autoStart) {
-    return (
-      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 py-16">
-        <Loader2 className="size-6 animate-spin text-emerald-600" />
-        <p className="text-sm text-muted-foreground">Starting your test…</p>
-      </div>
-    )
-  }
-
   return (
     <div className="mx-auto w-full max-w-md">
       <Card>
         <CardHeader className="gap-1.5">
           <CardTitle className="text-base">Verify your access</CardTitle>
           <CardDescription>
+            Enter your name
             {test.accessMode === 'WHITELIST'
-              ? 'Enter the phone number your administrator registered for this test.'
+              ? ' and the phone number your administrator registered.'
               : test.accessMode === 'INVITE'
-                ? 'Enter the invitation code you were given.'
-                : 'You can start this test directly.'}
+                ? ' and your invitation code.'
+                : ' to start the test.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleStart} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="name" className="text-xs">Your name <span className="text-destructive">*</span></Label>
+              <Input
+                id="name"
+                type="text"
+                autoComplete="name"
+                placeholder="e.g. Ahmed Khan"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={starting}
+              />
+            </div>
             {test.accessMode === 'WHITELIST' && (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="identifier" className="text-xs">Phone number</Label>

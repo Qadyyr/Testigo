@@ -160,6 +160,7 @@ model Invitation {
 model Participant {
   id             String    @id @default(cuid())
   testId         String
+  name           String?
   identifier     String?
   identifierType String    @default("PHONE")
   createdAt      DateTime  @default(now())

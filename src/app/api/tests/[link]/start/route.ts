@@ -7,6 +7,7 @@ import { signSessionToken } from '@/lib/session-token'
 export const dynamic = 'force-dynamic'
 
 const bodySchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(200).optional(),
   identifier: z.string().optional(), // phone for WHITELIST; optional for PUBLIC
   accessCode: z.string().optional(), // required only if test.requireCode
   inviteToken: z.string().optional(), // required only for INVITE mode
@@ -39,7 +40,7 @@ export async function POST(
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? 'Invalid input', 400)
     }
-    const { identifier, accessCode, inviteToken } = parsed.data
+    const { name, identifier, accessCode, inviteToken } = parsed.data
 
     // 1. Valid + published?
     const test = await db.test.findUnique({
@@ -138,9 +139,10 @@ export async function POST(
     if (resolvedIdentifier) {
       const participant = await db.participant.upsert({
         where: { testId_identifier: { testId: test.id, identifier: resolvedIdentifier } },
-        update: {},
+        update: { name: name ?? undefined },
         create: {
           testId: test.id,
+          name: name ?? null,
           identifier: resolvedIdentifier,
           identifierType: 'PHONE',
         },
@@ -177,9 +179,9 @@ export async function POST(
         )
       }
     } else {
-      // Public + no identifier — create an anonymous participant.
+      // Public + no identifier — create an anonymous participant (with name).
       const participant = await db.participant.create({
-        data: { testId: test.id, identifierType: 'PHONE' },
+        data: { testId: test.id, name: name ?? null, identifierType: 'PHONE' },
       })
       participantId = participant.id
     }
