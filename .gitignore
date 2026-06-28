@@ -57,3 +57,6 @@ server.log
 
 # allow the example env file
 !.env.example
+
+# uploads
+/upload/
