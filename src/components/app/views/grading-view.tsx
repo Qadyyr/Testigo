@@ -156,7 +156,7 @@ export function GradingView() {
           </Button>
         </header>
         <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-4 px-4 py-20">
-          <CheckCircle2 className="size-12 text-emerald-600" />
+          <CheckCircle2 className="size-12 text-amber-600" />
           <h2 className="text-lg font-semibold">All graded!</h2>
           <p className="text-sm text-muted-foreground">There are no pending short-answer responses to grade.</p>
           <Button onClick={() => navigate('analytics', { id: testId })}>Back to analytics</Button>
@@ -204,9 +204,9 @@ export function GradingView() {
                   </p>
                 </div>
                 {/* Acceptable answers */}
-                <div className="rounded-md border border-emerald-500/40 bg-emerald-50 p-3 text-sm dark:bg-emerald-950/30">
-                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Acceptable answers</span>
-                  <p className="mt-1 break-words text-emerald-800 dark:text-emerald-200">
+                <div className="rounded-md border border-amber-500/40 bg-amber-50 p-3 text-sm dark:bg-amber-950/30">
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Acceptable answers</span>
+                  <p className="mt-1 break-words text-amber-800 dark:text-amber-200">
                     {item.acceptableAnswers.join(', ')}
                   </p>
                 </div>
@@ -233,7 +233,7 @@ export function GradingView() {
                     size="sm"
                     onClick={() => handleGrade(item.responseId, item.positiveMarks)}
                     disabled={saving === item.responseId}
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="bg-amber-600 text-white hover:bg-amber-700"
                   >
                     {saving === item.responseId ? (
                       <><Loader2 className="size-4 animate-spin" /> Saving</>

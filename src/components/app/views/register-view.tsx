@@ -89,7 +89,7 @@ export function RegisterView() {
         {done ? (
           <Card>
             <CardHeader className="items-center text-center">
-              <CheckCircle2 className="size-12 text-emerald-600" />
+              <CheckCircle2 className="size-12 text-amber-600" />
               <CardTitle className="text-xl">Registration received</CardTitle>
               <CardDescription>
                 Your account is now pending approval. The platform administrator
@@ -108,7 +108,7 @@ export function RegisterView() {
           <Card>
             <CardHeader className="gap-2">
               <CardTitle className="flex items-center gap-2 text-xl">
-                <UserPlus className="size-5 text-emerald-600" />
+                <UserPlus className="size-5 text-amber-600" />
                 Request admin account
               </CardTitle>
               <CardDescription>
@@ -171,7 +171,7 @@ export function RegisterView() {
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+                  className="w-full bg-amber-600 text-white shadow-sm hover:bg-amber-700"
                 >
                   {submitting ? (
                     <>

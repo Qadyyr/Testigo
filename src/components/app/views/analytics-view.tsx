@@ -98,7 +98,7 @@ function typeLabel(t: string): string {
 
 function difficultyColor(d: number | null): string {
   if (d === null) return 'text-muted-foreground'
-  if (d >= 75) return 'text-emerald-600'
+  if (d >= 75) return 'text-amber-600'
   if (d >= 50) return 'text-amber-600'
   return 'text-destructive'
 }
@@ -225,7 +225,7 @@ export function AnalyticsView() {
             <span className="hidden sm:inline">Dashboard</span>
           </Button>
           <Separator orientation="vertical" className="mx-1 h-6" />
-          <BarChart3 className="size-4 text-emerald-600" />
+          <BarChart3 className="size-4 text-amber-600" />
           <h1 className="truncate text-sm font-semibold sm:text-base">{data.test.title}</h1>
         </div>
         <div className="flex items-center gap-1.5">
@@ -294,7 +294,7 @@ export function AnalyticsView() {
             {isManual && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700" disabled={releasing}>
+                  <Button size="sm" className="bg-amber-600 text-white hover:bg-amber-700" disabled={releasing}>
                     <Send className="size-4" />
                     Release results
                   </Button>
@@ -309,7 +309,7 @@ export function AnalyticsView() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRelease} className="bg-emerald-600 text-white hover:bg-emerald-700">
+                    <AlertDialogAction onClick={handleRelease} className="bg-amber-600 text-white hover:bg-amber-700">
                       Release now
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -317,7 +317,7 @@ export function AnalyticsView() {
               </AlertDialog>
             )}
             {!isManual && data.test.resultReleaseMode === 'IMMEDIATE' && (
-              <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+              <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">
                 <CheckCircle2 className="size-3" /> Results live
               </Badge>
             )}
@@ -344,7 +344,7 @@ export function AnalyticsView() {
                         fontSize: '12px',
                       }}
                     />
-                    <Bar dataKey="count" fill="oklch(0.646 0.222 41.116)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="count" fill="oklch(0.769 0.188 70.08)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -380,7 +380,7 @@ export function AnalyticsView() {
                       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
                         <div
                           className={`h-full rounded-full ${
-                            (q.difficulty ?? 0) >= 75 ? 'bg-emerald-500'
+                            (q.difficulty ?? 0) >= 75 ? 'bg-amber-500'
                             : (q.difficulty ?? 0) >= 50 ? 'bg-amber-500'
                             : 'bg-destructive'
                           }`}

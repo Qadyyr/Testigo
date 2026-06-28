@@ -95,9 +95,9 @@ function TerminalAccent() {
   const reduceMotion = useReducedMotion()
   const lines = [
     { p: '$', t: 'testigo open --code GK2024', c: 'text-foreground' },
-    { p: '↳', t: 'test found', c: 'text-emerald-600 dark:text-emerald-400' },
+    { p: '↳', t: 'test found', c: 'text-amber-600 dark:text-amber-400' },
     { p: '$', t: 'verifying access…', c: 'text-foreground' },
-    { p: '↳', t: 'session started', c: 'text-emerald-600 dark:text-emerald-400' },
+    { p: '↳', t: 'session started', c: 'text-amber-600 dark:text-amber-400' },
     { p: '$', t: 'testigo start', c: 'text-foreground' },
     { p: '↳', t: 'good luck', c: 'text-muted-foreground' },
   ]
@@ -107,7 +107,7 @@ function TerminalAccent() {
         <span className="flex gap-1.5" aria-hidden>
           <span className="size-3 rounded-full bg-red-400/70" />
           <span className="size-3 rounded-full bg-amber-400/70" />
-          <span className="size-3 rounded-full bg-emerald-400/70" />
+          <span className="size-3 rounded-full bg-amber-400/70" />
         </span>
         <span className="ml-2 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <TerminalSquare className="size-3.5" />
@@ -134,7 +134,7 @@ function TerminalAccent() {
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: [0, 1, 0] }}
             transition={{ delay: 1.4, duration: 1, repeat: Infinity }}
-            className="mt-0.5 inline-block h-3.5 w-2 bg-emerald-600 dark:bg-emerald-400"
+            className="mt-0.5 inline-block h-3.5 w-2 bg-amber-600 dark:bg-amber-400"
             aria-hidden
           />
         </div>
@@ -234,9 +234,9 @@ export function HomeView() {
         <section className="flex flex-col items-start gap-6">
           <motion.span
             {...fade(0)}
-            className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300"
+            className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300"
           >
-            <span className="size-1.5 rounded-full bg-emerald-500" />
+            <span className="size-1.5 rounded-full bg-amber-500" />
             Secure test access
           </motion.span>
 
@@ -288,7 +288,7 @@ export function HomeView() {
                   <Button
                     type="submit"
                     disabled={loading || !input.trim()}
-                    className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+                    className="bg-amber-600 text-white shadow-sm hover:bg-amber-700"
                   >
                     {loading ? (
                       <>

@@ -432,7 +432,7 @@ export function CreateTestView() {
             <button
               type="button"
               onClick={() => navigate('admin')}
-              className="rounded-md transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+              className="rounded-md transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
               aria-label="Back to dashboard"
             >
               <Brand />
@@ -547,7 +547,7 @@ function StepIndicator({
               className={cn(
                 'flex items-center gap-2 whitespace-nowrap rounded-md px-2 py-1 text-xs transition',
                 current
-                  ? 'text-emerald-700 dark:text-emerald-400'
+                  ? 'text-amber-700 dark:text-amber-400'
                   : completed
                     ? 'text-foreground hover:bg-accent'
                     : 'cursor-not-allowed text-muted-foreground'
@@ -558,9 +558,9 @@ function StepIndicator({
                 className={cn(
                   'flex size-6 items-center justify-center rounded-full border text-[11px] font-semibold',
                   current
-                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                    ? 'border-amber-600 bg-amber-600 text-white'
                     : completed
-                      ? 'border-emerald-600 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400'
+                      ? 'border-amber-600 bg-amber-600/10 text-amber-700 dark:text-amber-400'
                       : 'border-muted-foreground/30 text-muted-foreground'
                 )}
               >
@@ -572,7 +572,7 @@ function StepIndicator({
               <span
                 className={cn(
                   'h-px w-4 shrink-0 sm:w-8',
-                  completed ? 'bg-emerald-500' : 'bg-border'
+                  completed ? 'bg-amber-500' : 'bg-border'
                 )}
               />
             )}
@@ -682,7 +682,7 @@ function Step1Details({
           </CardDescription>
           <CardAction>
             {imported && imported.length > 0 ? (
-              <Badge className="border-transparent bg-emerald-600 text-white">
+              <Badge className="border-transparent bg-amber-600 text-white">
                 <CheckCircle2 className="size-3" />
                 {imported.length} imported
               </Badge>
@@ -747,7 +747,7 @@ function Step1Details({
               type="button"
               onClick={onRunDryRun}
               disabled={dryRun.status === 'loading' || !content.trim()}
-              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              className="bg-amber-600 text-white hover:bg-amber-700"
             >
               {dryRun.status === 'loading' ? (
                 <>
@@ -763,7 +763,7 @@ function Step1Details({
             </Button>
             {dryRun.status === 'done' && dryRun.result ? (
               <div className="flex flex-wrap items-center gap-2">
-                <Badge className="border-transparent bg-emerald-600 text-white">
+                <Badge className="border-transparent bg-amber-600 text-white">
                   <Check className="size-3" />
                   {dryRun.result.valid.length} valid
                 </Badge>
@@ -798,7 +798,7 @@ function Step1Details({
           <Button
             type="button"
             onClick={onNext}
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            className="bg-amber-600 text-white hover:bg-amber-700"
           >
             Next
             <ArrowRight className="size-4" />
@@ -873,7 +873,7 @@ function DryRunResults({
       {result.valid.length > 0 ? (
         hasImported ? (
           <>
-            <Alert className="border-emerald-500/40 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+            <Alert className="border-amber-500/40 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
               <CheckCircle2 className="size-4" />
               <AlertTitle>
                 {imported?.length} question{imported?.length === 1 ? '' : 's'} imported
@@ -898,7 +898,7 @@ function DryRunResults({
           </>
         ) : (
           <>
-            <Alert className="border-emerald-500/40 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+            <Alert className="border-amber-500/40 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
               <CheckCircle2 className="size-4" />
               <AlertTitle>
                 {result.valid.length} question
@@ -912,7 +912,7 @@ function DryRunResults({
                     type="button"
                     size="sm"
                     onClick={onImport}
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="bg-amber-600 text-white hover:bg-amber-700"
                   >
                     <Check className="size-3.5" />
                     Import {result.valid.length} valid question
@@ -946,7 +946,7 @@ function typeLabel(t: string): string {
 function typeBadgeClass(t: string): string {
   switch (t) {
     case 'MCQ':
-      return 'border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+      return 'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300'
     case 'TRUE_FALSE':
       return 'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300'
     case 'SHORT':
@@ -961,7 +961,7 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Eye className="size-4 text-emerald-600" />
+          <Eye className="size-4 text-amber-600" />
           Preview — {questions.length} question
           {questions.length === 1 ? '' : 's'}
         </CardTitle>
@@ -1010,26 +1010,26 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
                           key={oi}
                           className={`flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-sm sm:items-center sm:px-3 ${
                             isCorrect
-                              ? 'border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/30'
+                              ? 'border-amber-500/50 bg-amber-50 dark:bg-amber-950/30'
                               : 'border-border'
                           }`}
                         >
                           {isCorrect ? (
-                            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600 sm:mt-0" />
+                            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-amber-600 sm:mt-0" />
                           ) : (
                             <span className="mt-0.5 size-3.5 shrink-0 rounded-full border sm:mt-0" />
                           )}
                           <span
                             className={`min-w-0 flex-1 ${
                               isCorrect
-                                ? 'font-medium text-emerald-800 dark:text-emerald-200'
+                                ? 'font-medium text-amber-800 dark:text-amber-200'
                                 : ''
                             }`}
                           >
                             {opt}
                           </span>
                           {isCorrect && (
-                            <span className="shrink-0 text-xs text-emerald-600">
+                            <span className="shrink-0 text-xs text-amber-600">
                               correct
                             </span>
                           )}
@@ -1042,11 +1042,11 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
                 {/* Acceptable answers for SHORT */}
                 {q.type === 'SHORT' && (
                   <div className="flex flex-col gap-1.5 sm:pl-10">
-                    <div className="rounded-md border border-emerald-500/40 bg-emerald-50 p-2.5 text-sm dark:bg-emerald-950/30">
-                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                    <div className="rounded-md border border-amber-500/40 bg-amber-50 p-2.5 text-sm dark:bg-amber-950/30">
+                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
                         Acceptable answers
                       </span>
-                      <p className="mt-0.5 break-words text-emerald-800 dark:text-emerald-200">
+                      <p className="mt-0.5 break-words text-amber-800 dark:text-amber-200">
                         {acceptable.join(', ')}
                       </p>
                     </div>
@@ -1103,7 +1103,7 @@ function Step2Settings({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="size-4 text-emerald-600" />
+            <Clock className="size-4 text-amber-600" />
             Schedule
           </CardTitle>
           <CardDescription>
@@ -1167,7 +1167,7 @@ function Step2Settings({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Trophy className="size-4 text-emerald-600" />
+            <Trophy className="size-4 text-amber-600" />
             Marking &amp; attempts
           </CardTitle>
           <CardDescription>
@@ -1230,7 +1230,7 @@ function Step2Settings({
               className={cn(
                 'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition',
                 settings.resultReleaseMode === 'IMMEDIATE'
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30'
+                  ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
                   : 'hover:bg-accent'
               )}
             >
@@ -1251,7 +1251,7 @@ function Step2Settings({
               className={cn(
                 'flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition',
                 settings.resultReleaseMode === 'MANUAL'
-                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30'
+                  ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
                   : 'hover:bg-accent'
               )}
             >
@@ -1279,7 +1279,7 @@ function Step2Settings({
         <Button
           type="button"
           onClick={onNext}
-          className="bg-emerald-600 text-white hover:bg-emerald-700"
+          className="bg-amber-600 text-white hover:bg-amber-700"
         >
           Next
           <ArrowRight className="size-4" />
@@ -1357,7 +1357,7 @@ function Step3Access({
                   className={cn(
                     'flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition',
                     selected
-                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30'
+                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
                       : 'hover:bg-accent'
                   )}
                 >
@@ -1366,7 +1366,7 @@ function Step3Access({
                     value={m.value}
                     className="mt-1"
                   />
-                  <Icon className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+                  <Icon className="mt-0.5 size-5 shrink-0 text-amber-600" />
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">{m.title}</span>
@@ -1477,7 +1477,7 @@ function Step3Access({
         <Button
           type="button"
           onClick={onNext}
-          className="bg-emerald-600 text-white hover:bg-emerald-700"
+          className="bg-amber-600 text-white hover:bg-amber-700"
         >
           Next
           <ArrowRight className="size-4" />
@@ -1568,7 +1568,7 @@ function Step4Review({
     {
       label: 'Questions',
       value: (
-        <Badge className="border-transparent bg-emerald-600 text-white">
+        <Badge className="border-transparent bg-amber-600 text-white">
           {questionCount}
         </Badge>
       ),
@@ -1677,7 +1677,7 @@ function Step4Review({
           type="button"
           onClick={onCreate}
           disabled={creating || questionCount === 0}
-          className="w-full bg-emerald-600 text-white hover:bg-emerald-700 sm:w-auto"
+          className="w-full bg-amber-600 text-white hover:bg-amber-700 sm:w-auto"
         >
           {creating ? (
             <>
@@ -1722,7 +1722,7 @@ function SuccessScreen({
   return (
     <div className="mx-auto max-w-2xl space-y-6 py-4">
       <div className="flex flex-col items-center text-center">
-        <div className="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+        <div className="flex size-14 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
           <CheckCircle2 className="size-8" />
         </div>
         <h1 className="mt-4 text-2xl font-semibold tracking-tight">
@@ -1738,7 +1738,7 @@ function SuccessScreen({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="size-4 text-emerald-600" />
+            <LinkIcon className="size-4 text-amber-600" />
             Shareable link
           </CardTitle>
           <CardDescription>
@@ -1773,7 +1773,7 @@ function SuccessScreen({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Ticket className="size-4 text-emerald-600" />
+              <Ticket className="size-4 text-amber-600" />
               Invitation links
             </CardTitle>
             <CardDescription>
@@ -1790,7 +1790,7 @@ function SuccessScreen({
                     key={token}
                     className="flex items-center gap-2 rounded-lg border bg-muted/30 p-2"
                   >
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-emerald-600/10 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-600/10 text-xs font-semibold text-amber-700 dark:text-amber-400">
                       {i + 1}
                     </span>
                     <Input
@@ -1826,7 +1826,7 @@ function SuccessScreen({
         <Button
           type="button"
           onClick={onDashboard}
-          className="bg-emerald-600 text-white hover:bg-emerald-700"
+          className="bg-amber-600 text-white hover:bg-amber-700"
         >
           Go to dashboard
           <ArrowRight className="size-4" />

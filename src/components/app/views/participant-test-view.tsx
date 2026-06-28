@@ -418,7 +418,7 @@ function Landing({ test, onStart }: { test: ParticipantTest; onStart: () => void
       Not yet open
     </Badge>
   ) : (
-    <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+    <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">
       Open
     </Badge>
   )
@@ -487,7 +487,7 @@ function Landing({ test, onStart }: { test: ParticipantTest; onStart: () => void
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Clock className="size-4 text-emerald-600" />
+            <Clock className="size-4 text-amber-600" />
             Before you start
           </CardTitle>
         </CardHeader>
@@ -495,7 +495,7 @@ function Landing({ test, onStart }: { test: ParticipantTest; onStart: () => void
           <ul className="flex flex-col gap-2">
             {rules.map((rule, i) => (
               <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-emerald-500" />
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-amber-500" />
                 <span className="text-foreground/90">{rule}</span>
               </li>
             ))}
@@ -507,7 +507,7 @@ function Landing({ test, onStart }: { test: ParticipantTest; onStart: () => void
         size="lg"
         onClick={onStart}
         disabled={!canStart}
-        className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+        className="bg-amber-600 text-white shadow-sm hover:bg-amber-700"
       >
         <Play className="size-4" />
         {startLabel}
@@ -702,7 +702,7 @@ function Gating({
               <Button
                 type="submit"
                 disabled={starting}
-                className="flex-1 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+                className="flex-1 bg-amber-600 text-white shadow-sm hover:bg-amber-700"
               >
                 {starting ? (
                   <><Loader2 className="size-4 animate-spin" /> Starting…</>
@@ -958,31 +958,58 @@ function Taking({
 
   return (
     <div className="flex flex-1 flex-col">
-      {/* Top bar: timer + save state */}
-      <div className="sticky top-14 z-20 flex items-center justify-between border-b bg-background/90 px-4 py-2 backdrop-blur sm:px-6">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {saveState === 'saving' ? (
-            <><Loader2 className="size-3.5 animate-spin" /> Saving…</>
-          ) : saveState === 'saved' ? (
-            <><CheckCircle2 className="size-3.5 text-emerald-600" /> Saved</>
-          ) : (
-            <><Wifi className="size-3.5" /> Auto-save on</>
+      {/* Slim top bar: timer + save + palette toggle */}
+      <div className="sticky top-14 z-20 flex items-center justify-between border-b bg-background/90 px-4 py-2.5 backdrop-blur sm:px-6">
+        <div className="flex items-center gap-3">
+          {remainingMs !== null && (
+            <div
+              className={`flex items-center gap-1.5 font-mono text-base font-semibold tabular-nums ${
+                remainingMs < 60_000
+                  ? 'text-destructive'
+                  : remainingMs < 5 * 60_000
+                    ? 'text-amber-600'
+                    : 'text-foreground'
+              }`}
+            >
+              <Clock className="size-4" />
+              {fmtDuration(remainingMs)}
+            </div>
           )}
         </div>
-        {remainingMs !== null && (
-          <div
-            className={`flex items-center gap-1.5 font-mono text-sm font-semibold tabular-nums ${
-              remainingMs < 60_000
-                ? 'text-destructive'
-                : remainingMs < 5 * 60_000
-                  ? 'text-amber-600'
-                  : 'text-foreground'
-            }`}
-          >
-            <Clock className="size-4" />
-            {fmtDuration(remainingMs)}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {saveState === 'saving' ? (
+              <><Loader2 className="size-3 animate-spin" /> Saving…</>
+            ) : saveState === 'saved' ? (
+              <><CheckCircle2 className="size-3 text-amber-600" /> Saved</>
+            ) : (
+              <><Wifi className="size-3" /> Auto-save</>
+            )}
           </div>
-        )}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Grid className="size-3.5" />
+                <span className="font-mono text-xs">{answeredCount}/{questions.length}</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-80 max-w-[85vw] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Question palette</SheetTitle>
+              </SheetHeader>
+              <div className="px-4 pb-6">
+                <PaletteContent
+                  questions={questions}
+                  current={current}
+                  answeredCount={answeredCount}
+                  store={store}
+                  submitting={submitting}
+                  onSubmit={() => handleSubmit(false)}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
 
       {/* Tab-switch warning */}
@@ -992,193 +1019,114 @@ function Taking({
         </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row">
-        {/* Left: current question */}
-        <div className="flex-1">
-          <div className="mb-4 flex items-center justify-between">
-            <span className="text-sm font-medium">
+      {/* Centered question — full width, generous spacing */}
+      <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
+        {/* Question meta */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-muted-foreground">
               Question {current + 1} of {questions.length}
             </span>
-            <Badge variant="secondary" className="font-mono">
-              {q.type}
+            <Badge variant="outline" className="font-mono text-xs">
+              {q.type === 'TRUE_FALSE' ? 'T/F' : q.type}
             </Badge>
-          </div>
-          <Progress value={((current + 1) / questions.length) * 100} className="mb-6 h-1.5" />
-
-          <Card>
-            <CardHeader className="gap-4">
-              <CardTitle className="text-balance text-lg font-semibold leading-relaxed">
-                {q.questionText}
-              </CardTitle>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="outline" className="gap-1">
-                  +{q.positiveMarks} {q.positiveMarks === 1 ? 'mark' : 'marks'}
-                </Badge>
-                {q.negativeMarks > 0 && (
-                  <Badge variant="outline" className="gap-1 text-destructive">
-                    −{q.negativeMarks}
-                  </Badge>
-                )}
-                <button
-                  type="button"
-                  onClick={() => store.toggleFlag(q.id)}
-                  className={`ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition ${
-                    store.flagged[q.id]
-                      ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                      : 'text-muted-foreground hover:bg-accent'
-                  }`}
-                >
-                  <Flag className="size-3.5" />
-                  {store.flagged[q.id] ? 'Flagged' : 'Flag'}
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {q.type === 'MCQ' || q.type === 'TRUE_FALSE' ? (
-                <MCQInput
-                  options={q.options}
-                  selected={Array.isArray(store.answers[q.id])
-                    ? (store.answers[q.id] as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n))
-                    : []}
-                  onChange={(sel) => {
-                    store.setAnswer(q.id, sel)
-                    saveAnswer(q.id)
-                  }}
-                />
-              ) : (
-                <Textarea
-                  placeholder="Type your answer here…"
-                  value={(store.answers[q.id] as string) ?? ''}
-                  onChange={(e) => store.setAnswer(q.id, e.target.value)}
-                  onBlur={() => saveAnswer(q.id)}
-                  rows={5}
-                  className="resize-y"
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          <div className="mt-6 flex items-center justify-between">
-            <Button
-              variant="outline"
-              onClick={() => store.setCurrent(Math.max(0, current - 1))}
-              disabled={current === 0}
-            >
-              <ChevronLeft className="size-4" />
-              Previous
-            </Button>
-            {!isLast ? (
-              <Button
-                onClick={() => store.setCurrent(Math.min(questions.length - 1, current + 1))}
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                Next
-                <ChevronRight className="size-4" />
-              </Button>
-            ) : (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button className="bg-emerald-600 text-white hover:bg-emerald-700" disabled={submitting}>
-                    <Send className="size-4" />
-                    Review & Submit
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Submit test?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      You&apos;ve answered {answeredCount} of {questions.length} questions.
-                      You won&apos;t be able to change your answers after submitting.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Keep working</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => handleSubmit(false)}
-                      className="bg-emerald-600 text-white hover:bg-emerald-700"
-                    >
-                      Submit now
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            {q.negativeMarks > 0 && (
+              <Badge variant="outline" className="gap-1 text-xs text-destructive">
+                −{q.negativeMarks}
+              </Badge>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => store.toggleFlag(q.id)}
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition ${
+              store.flagged[q.id]
+                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                : 'text-muted-foreground hover:bg-accent'
+            }`}
+          >
+            <Flag className="size-3.5" />
+            {store.flagged[q.id] ? 'Flagged' : 'Flag'}
+          </button>
         </div>
+        <Progress value={((current + 1) / questions.length) * 100} className="mb-8 h-1" />
 
-        {/* Right: palette — desktop sidebar */}
-        <aside className="hidden lg:block lg:w-72 lg:shrink-0">
-          <div className="lg:sticky lg:top-32">
-            <PaletteContent
-              questions={questions}
-              current={current}
-              answeredCount={answeredCount}
-              store={store}
-              submitting={submitting}
-              onSubmit={() => handleSubmit(false)}
-            />
-          </div>
-        </aside>
-      </div>
+        {/* Question text — large, readable */}
+        <h2 className="mb-8 text-balance text-xl font-semibold leading-relaxed sm:text-2xl">
+          {q.questionText}
+        </h2>
 
-      {/* Mobile: sticky bottom bar with palette toggle + submit */}
-      <div className="sticky bottom-0 z-30 flex items-center gap-2 border-t bg-background/95 px-4 py-2.5 backdrop-blur lg:hidden">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="flex-1">
-              <Grid className="size-4" />
-              Questions
-              <Badge variant="secondary" className="ml-1 font-mono">
-                {answeredCount}/{questions.length}
-              </Badge>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Question palette</SheetTitle>
-            </SheetHeader>
-            <div className="px-4 pb-6">
-              <PaletteContent
-                questions={questions}
-                current={current}
-                answeredCount={answeredCount}
-                store={store}
-                submitting={submitting}
-                onSubmit={() => handleSubmit(false)}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
+        {/* Answer area */}
+        {q.type === 'MCQ' || q.type === 'TRUE_FALSE' ? (
+          <MCQInput
+            options={q.options}
+            selected={Array.isArray(store.answers[q.id])
+              ? (store.answers[q.id] as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n))
+              : []}
+            onChange={(sel) => {
+              store.setAnswer(q.id, sel)
+              saveAnswer(q.id)
+            }}
+          />
+        ) : (
+          <Textarea
+            placeholder="Type your answer here…"
+            value={(store.answers[q.id] as string) ?? ''}
+            onChange={(e) => store.setAnswer(q.id, e.target.value)}
+            onBlur={() => saveAnswer(q.id)}
+            rows={6}
+            className="resize-y text-base"
+          />
+        )}
+
+        {/* Navigation */}
+        <div className="mt-10 flex items-center justify-between">
+          <Button
+            variant="outline"
+            onClick={() => store.setCurrent(Math.max(0, current - 1))}
+            disabled={current === 0}
+            className="gap-1.5"
+          >
+            <ChevronLeft className="size-4" />
+            Previous
+          </Button>
+          {!isLast ? (
             <Button
-              size="sm"
-              className="bg-emerald-600 text-white hover:bg-emerald-700"
-              disabled={submitting}
+              onClick={() => store.setCurrent(Math.min(questions.length - 1, current + 1))}
+              className="gap-1.5 bg-amber-600 text-white hover:bg-amber-700"
             >
-              <Send className="size-4" />
-              Submit
+              Next
+              <ChevronRight className="size-4" />
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Submit test?</AlertDialogTitle>
-              <AlertDialogDescription>
-                You&apos;ve answered {answeredCount} of {questions.length} questions.
-                You won&apos;t be able to change your answers after submitting.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Keep working</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => handleSubmit(false)}
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                Submit now
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button className="gap-1.5 bg-amber-600 text-white hover:bg-amber-700" disabled={submitting}>
+                  <Send className="size-4" />
+                  Submit test
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Submit test?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You&apos;ve answered {answeredCount} of {questions.length} questions.
+                    You won&apos;t be able to change your answers after submitting.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep working</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleSubmit(false)}
+                    className="bg-amber-600 text-white hover:bg-amber-700"
+                  >
+                    Submit now
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -1233,9 +1181,9 @@ function PaletteContent({
                 onClick={() => store.setCurrent(i)}
                 className={`relative flex size-9 items-center justify-center rounded-md border text-xs font-medium transition ${
                   isCurrent
-                    ? 'border-emerald-600 bg-emerald-600 text-white'
+                    ? 'border-amber-600 bg-amber-600 text-white'
                     : isAnswered
-                      ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300'
                       : 'border-border bg-background text-muted-foreground hover:bg-accent'
                 }`}
                 aria-label={`Question ${i + 1}${isAnswered ? ' (answered)' : ''}${isFlagged ? ' (flagged)' : ''}`}
@@ -1253,7 +1201,7 @@ function PaletteContent({
 
         <div className="flex flex-col gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span className="size-3 rounded border border-emerald-500/40 bg-emerald-500/10" /> Answered
+            <span className="size-3 rounded border border-amber-500/40 bg-amber-500/10" /> Answered
           </div>
           <div className="flex items-center gap-2">
             <span className="size-3 rounded border border-border bg-background" /> Not answered
@@ -1268,7 +1216,7 @@ function PaletteContent({
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button className="mt-4 w-full bg-emerald-600 text-white hover:bg-emerald-700" disabled={submitting}>
+            <Button className="mt-4 w-full bg-amber-600 text-white hover:bg-amber-700" disabled={submitting}>
               <Send className="size-4" />
               Submit test
             </Button>
@@ -1285,7 +1233,7 @@ function PaletteContent({
               <AlertDialogCancel>Keep working</AlertDialogCancel>
               <AlertDialogAction
                 onClick={onSubmit}
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
+                className="bg-amber-600 text-white hover:bg-amber-700"
               >
                 Submit now
               </AlertDialogAction>
@@ -1325,14 +1273,14 @@ function MCQInput({
             key={i}
             type="button"
             onClick={() => toggle(i)}
-            className={`flex items-start gap-3 rounded-lg border p-3 text-left text-sm transition ${
+            className={`flex items-center gap-3.5 rounded-xl border-2 p-4 text-left text-base transition sm:p-5 ${
               checked
-                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30'
-                : 'hover:bg-accent'
+                ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
+                : 'border-border hover:border-amber-300 hover:bg-accent/50'
             }`}
           >
-            <Checkbox checked={checked} className="mt-0.5" />
-            <span className="flex-1">{String(opt)}</span>
+            <Checkbox checked={checked} className="size-5" />
+            <span className="flex-1 font-medium">{String(opt)}</span>
           </button>
         )
       })}
@@ -1350,7 +1298,7 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
     return (
       <Card className="mx-auto max-w-md">
         <CardHeader className="items-center text-center">
-          <CheckCircle2 className="size-12 text-emerald-600" />
+          <CheckCircle2 className="size-12 text-amber-600" />
           <CardTitle>Already attempted</CardTitle>
           <CardDescription>
             You have already attempted this test. Contact your administrator if you think this is an error.
@@ -1374,10 +1322,10 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
         <CardHeader className="items-center text-center">
           {result.showResults ? (
             <>
-              <CheckCircle2 className="size-12 text-emerald-600" />
+              <CheckCircle2 className="size-12 text-amber-600" />
               <CardTitle className="text-2xl">Test submitted!</CardTitle>
               <div className="mt-2">
-                <span className="text-4xl font-bold text-emerald-600">{result.score}%</span>
+                <span className="text-4xl font-bold text-amber-600">{result.score}%</span>
               </div>
               {result.correct !== null && (
                 <CardDescription>
@@ -1395,7 +1343,7 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
             </>
           ) : (
             <>
-              <CheckCircle2 className="size-12 text-emerald-600" />
+              <CheckCircle2 className="size-12 text-amber-600" />
               <CardTitle className="text-2xl">Test submitted!</CardTitle>
               <CardDescription>Thank you for completing the test.</CardDescription>
             </>
@@ -1442,7 +1390,7 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
                       <p className="text-sm font-medium leading-relaxed">{a.questionText}</p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         {a.isCorrect === true && (
-                          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                          <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">
                             <CheckCircle2 className="size-3" /> Correct
                           </Badge>
                         )}
@@ -1473,27 +1421,27 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
                             key={oi}
                             className={`flex items-start gap-2 rounded-md border px-2.5 py-2 text-sm sm:gap-2 sm:px-3 ${
                               isCorrectOpt
-                                ? 'border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/30'
+                                ? 'border-amber-500/50 bg-amber-50 dark:bg-amber-950/30'
                                 : userPicked
                                   ? 'border-destructive/40 bg-destructive/5'
                                   : 'border-border'
                             }`}
                           >
                             {isCorrectOpt ? (
-                              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
+                              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-amber-600" />
                             ) : userPicked ? (
                               <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
                             ) : (
                               <span className="mt-0.5 size-4 shrink-0 rounded-full border" />
                             )}
-                            <span className={`min-w-0 flex-1 ${isCorrectOpt ? 'font-medium text-emerald-800 dark:text-emerald-200' : ''}`}>
+                            <span className={`min-w-0 flex-1 ${isCorrectOpt ? 'font-medium text-amber-800 dark:text-amber-200' : ''}`}>
                               {opt}
                             </span>
                             {userPicked && !isCorrectOpt && (
                               <span className="shrink-0 text-xs text-destructive">your answer</span>
                             )}
                             {isCorrectOpt && (
-                              <span className="shrink-0 text-xs text-emerald-600">correct</span>
+                              <span className="shrink-0 text-xs text-amber-600">correct</span>
                             )}
                           </div>
                         )
@@ -1505,9 +1453,9 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
                         <span className="text-xs font-medium text-muted-foreground">Your answer</span>
                         <p className="mt-1 break-words">{(a.userAnswer as string) || <span className="text-muted-foreground">No answer</span>}</p>
                       </div>
-                      <div className="rounded-md border border-emerald-500/40 bg-emerald-50 p-2.5 text-sm dark:bg-emerald-950/30">
-                        <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Acceptable answers</span>
-                        <p className="mt-1 break-words text-emerald-800 dark:text-emerald-200">
+                      <div className="rounded-md border border-amber-500/40 bg-amber-50 p-2.5 text-sm dark:bg-amber-950/30">
+                        <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Acceptable answers</span>
+                        <p className="mt-1 break-words text-amber-800 dark:text-amber-200">
                           {(a.correctAnswers as string[]).join(', ')}
                         </p>
                       </div>

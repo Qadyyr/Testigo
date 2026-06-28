@@ -166,7 +166,7 @@ export function LoginView() {
               <Button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+                className="w-full bg-amber-600 text-white shadow-sm hover:bg-amber-700"
               >
                 {submitting ? (
                   <>

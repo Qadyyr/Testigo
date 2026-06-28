@@ -159,7 +159,7 @@ function accessModeLabel(mode: RecentTest['accessMode']): string {
 function accessBadgeClass(mode: RecentTest['accessMode']): string {
   switch (mode) {
     case 'PUBLIC':
-      return 'border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+      return 'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300'
     case 'WHITELIST':
       return 'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300'
     case 'INVITE':
@@ -195,7 +195,7 @@ function NavItem({
   const baseClass = [
     'flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
     active
-      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+      ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
       : 'text-muted-foreground hover:bg-accent hover:text-foreground',
     disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
   ].join(' ')
@@ -319,7 +319,7 @@ function StatCard({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardDescription>{label}</CardDescription>
-          <span className="flex size-8 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+          <span className="flex size-8 items-center justify-center rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300">
             <Icon className="size-4" />
           </span>
         </div>
@@ -365,7 +365,7 @@ function EmptyTestsState() {
   const { navigate } = useViewRouter()
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-      <span className="flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+      <span className="flex size-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300">
         <FileText className="size-6" />
       </span>
       <div className="flex flex-col gap-1">
@@ -378,7 +378,7 @@ function EmptyTestsState() {
         variant="outline"
         size="sm"
         onClick={() => navigate('create')}
-        className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+        className="border-amber-600 text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/40"
       >
         <Plus className="size-4" />
         Create Test
@@ -419,7 +419,7 @@ function RecentTestsTable({ tests }: { tests: RecentTest[] }) {
               </TableCell>
               <TableCell>
                 {test.isPublished ? (
-                  <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                  <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">
                     Published
                   </Badge>
                 ) : (
@@ -498,7 +498,7 @@ function DashboardContent({
               variant="outline"
               size="sm"
               onClick={() => navigate('create')}
-              className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+              className="border-amber-600 text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/40"
             >
               <Plus className="size-4" />
               Create Test
@@ -660,7 +660,7 @@ function AdminLayout({
                     aria-label="Account menu"
                   >
                     <Avatar className="size-8">
-                      <AvatarFallback className="bg-emerald-600 text-xs font-semibold text-white">
+                      <AvatarFallback className="bg-amber-600 text-xs font-semibold text-white">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
@@ -930,7 +930,7 @@ function TestsContent({ navigate, isSuperAdmin }: { navigate: (view?: string, ex
             className="pl-9"
           />
         </div>
-        <Button onClick={() => navigate('create')} className="bg-emerald-600 text-white hover:bg-emerald-700">
+        <Button onClick={() => navigate('create')} className="bg-amber-600 text-white hover:bg-amber-700">
           <Plus className="size-4" /> Create Test
         </Button>
       </div>
@@ -944,7 +944,7 @@ function TestsContent({ navigate, isSuperAdmin }: { navigate: (view?: string, ex
               {search ? 'Try a different search term.' : 'Create your first test to get started.'}
             </p>
             {!search && (
-              <Button onClick={() => navigate('create')} className="bg-emerald-600 text-white hover:bg-emerald-700">
+              <Button onClick={() => navigate('create')} className="bg-amber-600 text-white hover:bg-amber-700">
                 <Plus className="size-4" /> Create Test
               </Button>
             )}
@@ -959,7 +959,7 @@ function TestsContent({ navigate, isSuperAdmin }: { navigate: (view?: string, ex
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-semibold">{t.title}</h3>
                     {t.isPublished ? (
-                      <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Published</Badge>
+                      <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">Published</Badge>
                     ) : (
                       <Badge variant="secondary">Draft</Badge>
                     )}
@@ -1191,7 +1191,7 @@ function SettingsContent() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <SettingsIcon className="size-4 text-emerald-600" />
+            <SettingsIcon className="size-4 text-amber-600" />
             Change password
           </CardTitle>
           <CardDescription>Update your admin account password</CardDescription>
@@ -1234,7 +1234,7 @@ function SettingsContent() {
                 required
               />
             </div>
-            <Button type="submit" disabled={saving} className="bg-emerald-600 text-white hover:bg-emerald-700">
+            <Button type="submit" disabled={saving} className="bg-amber-600 text-white hover:bg-amber-700">
               {saving ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : 'Update password'}
             </Button>
           </form>
@@ -1368,7 +1368,7 @@ function AdminsContent() {
                   <Input id="new-pass" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 8 chars" disabled={creating} />
                 </div>
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={creating} className="bg-emerald-600 text-white hover:bg-emerald-700">
+                  <Button type="submit" disabled={creating} className="bg-amber-600 text-white hover:bg-amber-700">
                     {creating ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
                     Create
                   </Button>
@@ -1380,7 +1380,7 @@ function AdminsContent() {
             </CardContent>
           </Card>
         ) : (
-          <Button onClick={() => setShowCreate(true)} className="bg-emerald-600 text-white hover:bg-emerald-700">
+          <Button onClick={() => setShowCreate(true)} className="bg-amber-600 text-white hover:bg-amber-700">
             <Plus className="size-4" /> Add admin
           </Button>
         )}
@@ -1409,7 +1409,7 @@ function AdminsContent() {
                     size="sm"
                     onClick={() => handleAction(a.id, 'approve')}
                     disabled={!!acting}
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    className="bg-amber-600 text-white hover:bg-amber-700"
                   >
                     {acting === a.id + 'approve' ? <Loader2 className="size-4 animate-spin" /> : <UserCheck className="size-4" />}
                     Approve
@@ -1443,7 +1443,7 @@ function AdminsContent() {
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-medium">{a.name}</p>
                   {a.role === 'SUPER_ADMIN' && (
-                    <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                    <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">
                       <ShieldCheck className="size-3" /> Super Admin
                     </Badge>
                   )}
@@ -1510,14 +1510,14 @@ function DatabaseContent() {
 
   if (loading || !usage) return <div className="flex flex-col gap-3">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
 
-  const color = usage.percentage < 70 ? 'bg-emerald-500' : usage.percentage < 90 ? 'bg-amber-500' : 'bg-destructive'
+  const color = usage.percentage < 70 ? 'bg-amber-500' : usage.percentage < 90 ? 'bg-amber-500' : 'bg-destructive'
 
   return (
     <div className="mx-auto w-full max-w-2xl">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <DatabaseIcon className="size-4 text-emerald-600" />
+            <DatabaseIcon className="size-4 text-amber-600" />
             Database usage
           </CardTitle>
           <CardDescription>Real-time PostgreSQL storage on Neon (free tier)</CardDescription>
