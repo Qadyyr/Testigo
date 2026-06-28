@@ -280,3 +280,23 @@ Work Log:
 
 Stage Summary:
 - Both question previews are now mobile-responsive. No horizontal overflow at 375px. Content stacks cleanly: question number + type badge + text on top, options full-width below, explanation as a stacked labeled box. Lint + tsc clean.
+
+---
+Task ID: 17
+Agent: orchestrator (main)
+Task: Phase 5 — analytics dashboard, manual SHORT grading, CSV export, result release.
+
+Work Log:
+- Backend: 5 new admin API routes:
+  - GET /api/admin/tests/[id]/analytics — total/avg score, score distribution (5 buckets), per-question difficulty (% correct), pending SHORT count
+  - GET /api/admin/tests/[id]/results — all attempts + responses, supports ?format=csv (returns downloadable CSV)
+  - GET /api/admin/tests/[id]/grading — pending SHORT responses (student answer + acceptable answers + marks)
+  - PATCH /api/admin/responses/[id]/grade — grade a SHORT response, auto-recomputes attempt totalScore
+  - POST /api/admin/tests/[id]/release — releases results (MANUAL → IMMEDIATE), returns attempt count
+- Frontend: AnalyticsView (stat cards: attempts/avg/questions/pending; recharts score distribution bar chart; per-question difficulty with color-coded progress bars emerald/amber/red; CSV export; 'Grade SHORT' button if pending>0; 'Release results' button if MANUAL; 'Results live' badge if IMMEDIATE)
+- Frontend: GradingView (pending SHORT responses with student's answer + acceptable answers; marks input 0–positiveMarks; save grade removes from list + recomputes score; 'All graded!' empty state)
+- Dashboard: test rows now clickable → navigate('analytics', {id: test.id})
+- Router: added 'analytics' + 'grading' views
+
+Stage Summary:
+- Live verified on Vercel: admin → dashboard → click 'Math 1' test → analytics view shows 1 attempt, 50% avg, 4 questions, score distribution chart, per-question difficulty (Q1 100%, Q2 100%, Q3 0%, Q4 0%), Export CSV button, Results live badge. Lint + tsc clean. Phase 5 complete.
