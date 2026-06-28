@@ -245,3 +245,16 @@ Work Log:
 
 Stage Summary:
 - Live verified on Vercel: admin → Create Test → Step 1 → Load sample → Run dry run → shows "4 valid, 1 error" + PREVIEW card with all 4 questions rendered (type badges, correct answers highlighted, explanations). Admin can verify everything before importing. Lint + tsc clean.
+
+---
+Task ID: 15
+Agent: orchestrator (main)
+Task: Fix two bugs: (1) test code doesn't work properly on landing (redundant gate for public tests), (2) test-taking UI broken on mobile.
+
+Work Log:
+- Bug 1 (gate): PUBLIC tests with requireCode=false no longer show the pointless "Verify your access / Start test" gate. Gating component now auto-starts (useEffect calls handleStart) and shows a spinner "Starting your test…" while the attempt is created. WHITELIST/INVITE/requireCode tests still show the gate form as before.
+- Bug 2 (mobile): palette was stacking below the question on mobile, pushing navigation off-screen. Fixed: desktop keeps the sidebar (hidden lg:block); mobile gets a sticky bottom bar with "Questions X/N" toggle (opens a bottom Sheet with the full palette) + a "Submit" button. Both share a new PaletteContent component. Tested at 375px: question + options render, Previous/Next work, palette Sheet opens, submit works, result renders.
+- Live verified on Vercel: pubdemo → Start Test → goes straight to taking (no gate) → mobile layout works end-to-end → submit → result with review.
+
+Stage Summary:
+- Both bugs fixed. Public tests now skip the redundant gate. Mobile test-taking UI has a sticky bottom bar (Questions toggle + Submit) instead of stacking the palette. Lint + tsc clean.
