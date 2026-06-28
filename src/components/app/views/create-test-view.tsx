@@ -980,13 +980,13 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
               ? (q.correctAnswers as string[])
               : []
             return (
-              <div key={i} className="rounded-lg border bg-card p-4">
+              <div key={i} className="rounded-lg border bg-card p-3 sm:p-4">
                 <div className="mb-2 flex items-start gap-3">
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                     {i + 1}
                   </span>
-                  <div className="flex-1">
-                    <div className="mb-1.5 flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                       <Badge
                         variant="outline"
                         className={typeBadgeClass(q.type)}
@@ -1002,34 +1002,34 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
 
                 {/* Options for MCQ / TRUE_FALSE */}
                 {(q.type === 'MCQ' || q.type === 'TRUE_FALSE') && (
-                  <div className="flex flex-col gap-1.5 pl-10">
+                  <div className="flex flex-col gap-1.5 sm:pl-10">
                     {q.options.map((opt, oi) => {
                       const isCorrect = correctIdx.includes(oi)
                       return (
                         <div
                           key={oi}
-                          className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${
+                          className={`flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-sm sm:items-center sm:px-3 ${
                             isCorrect
                               ? 'border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/30'
                               : 'border-border'
                           }`}
                         >
                           {isCorrect ? (
-                            <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+                            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-600 sm:mt-0" />
                           ) : (
-                            <span className="size-3.5 shrink-0 rounded-full border" />
+                            <span className="mt-0.5 size-3.5 shrink-0 rounded-full border sm:mt-0" />
                           )}
                           <span
-                            className={
+                            className={`min-w-0 flex-1 ${
                               isCorrect
                                 ? 'font-medium text-emerald-800 dark:text-emerald-200'
                                 : ''
-                            }
+                            }`}
                           >
                             {opt}
                           </span>
                           {isCorrect && (
-                            <span className="ml-auto text-xs text-emerald-600">
+                            <span className="shrink-0 text-xs text-emerald-600">
                               correct
                             </span>
                           )}
@@ -1041,12 +1041,12 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
 
                 {/* Acceptable answers for SHORT */}
                 {q.type === 'SHORT' && (
-                  <div className="flex flex-col gap-1.5 pl-10">
+                  <div className="flex flex-col gap-1.5 sm:pl-10">
                     <div className="rounded-md border border-emerald-500/40 bg-emerald-50 p-2.5 text-sm dark:bg-emerald-950/30">
                       <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
                         Acceptable answers
                       </span>
-                      <p className="mt-0.5 text-emerald-800 dark:text-emerald-200">
+                      <p className="mt-0.5 break-words text-emerald-800 dark:text-emerald-200">
                         {acceptable.join(', ')}
                       </p>
                     </div>
@@ -1055,11 +1055,11 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
 
                 {/* Explanation */}
                 {q.explanation && (
-                  <div className="mt-2 flex items-start gap-2 rounded-md border border-border bg-muted/20 p-2.5 pl-10 text-sm">
-                    <span className="text-xs font-medium text-muted-foreground">
+                  <div className="mt-2 rounded-md border border-border bg-muted/20 p-2.5 text-sm sm:ml-10">
+                    <span className="block text-xs font-medium text-muted-foreground">
                       Explanation
                     </span>
-                    <p className="flex-1 text-muted-foreground">
+                    <p className="mt-1 break-words text-muted-foreground">
                       {q.explanation}
                     </p>
                   </div>

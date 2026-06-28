@@ -1417,14 +1417,14 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
                 : []
               const isMcq = a.type === 'MCQ' || a.type === 'TRUE_FALSE'
               return (
-                <div key={a.questionId} className="rounded-lg border p-4">
+                <div key={a.questionId} className="rounded-lg border p-3 sm:p-4">
                   <div className="mb-3 flex items-start gap-3">
                     <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                       {i + 1}
                     </span>
-                    <div className="flex-1">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium leading-relaxed">{a.questionText}</p>
-                      <div className="mt-1.5 flex items-center gap-2">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         {a.isCorrect === true && (
                           <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
                             <CheckCircle2 className="size-3" /> Correct
@@ -1448,14 +1448,14 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
                   </div>
 
                   {isMcq ? (
-                    <div className="flex flex-col gap-1.5 pl-10">
+                    <div className="flex flex-col gap-1.5 sm:pl-10">
                       {a.options.map((opt, oi) => {
                         const userPicked = userSel.includes(oi)
                         const isCorrectOpt = correct.includes(oi)
                         return (
                           <div
                             key={oi}
-                            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                            className={`flex items-start gap-2 rounded-md border px-2.5 py-2 text-sm sm:gap-2 sm:px-3 ${
                               isCorrectOpt
                                 ? 'border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/30'
                                 : userPicked
@@ -1464,34 +1464,34 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
                             }`}
                           >
                             {isCorrectOpt ? (
-                              <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+                              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
                             ) : userPicked ? (
-                              <XCircle className="size-4 shrink-0 text-destructive" />
+                              <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
                             ) : (
-                              <span className="size-4 shrink-0 rounded-full border" />
+                              <span className="mt-0.5 size-4 shrink-0 rounded-full border" />
                             )}
-                            <span className={isCorrectOpt ? 'font-medium text-emerald-800 dark:text-emerald-200' : ''}>
+                            <span className={`min-w-0 flex-1 ${isCorrectOpt ? 'font-medium text-emerald-800 dark:text-emerald-200' : ''}`}>
                               {opt}
                             </span>
                             {userPicked && !isCorrectOpt && (
-                              <span className="ml-auto text-xs text-destructive">your answer</span>
+                              <span className="shrink-0 text-xs text-destructive">your answer</span>
                             )}
                             {isCorrectOpt && (
-                              <span className="ml-auto text-xs text-emerald-600">correct</span>
+                              <span className="shrink-0 text-xs text-emerald-600">correct</span>
                             )}
                           </div>
                         )
                       })}
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-2 pl-10">
-                      <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+                    <div className="flex flex-col gap-2 sm:pl-10">
+                      <div className="rounded-md border border-border bg-muted/30 p-2.5 text-sm">
                         <span className="text-xs font-medium text-muted-foreground">Your answer</span>
-                        <p className="mt-1">{(a.userAnswer as string) || <span className="text-muted-foreground">No answer</span>}</p>
+                        <p className="mt-1 break-words">{(a.userAnswer as string) || <span className="text-muted-foreground">No answer</span>}</p>
                       </div>
-                      <div className="rounded-md border border-emerald-500/40 bg-emerald-50 p-3 text-sm dark:bg-emerald-950/30">
+                      <div className="rounded-md border border-emerald-500/40 bg-emerald-50 p-2.5 text-sm dark:bg-emerald-950/30">
                         <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Acceptable answers</span>
-                        <p className="mt-1 text-emerald-800 dark:text-emerald-200">
+                        <p className="mt-1 break-words text-emerald-800 dark:text-emerald-200">
                           {(a.correctAnswers as string[]).join(', ')}
                         </p>
                       </div>
@@ -1499,9 +1499,9 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
                   )}
 
                   {a.explanation && (
-                    <div className="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/20 p-3 pl-10 text-sm">
-                      <span className="text-xs font-medium text-muted-foreground">Explanation</span>
-                      <p className="flex-1 text-muted-foreground">{a.explanation}</p>
+                    <div className="mt-2.5 rounded-md border border-border bg-muted/20 p-2.5 text-sm sm:ml-10 sm:mt-3">
+                      <span className="block text-xs font-medium text-muted-foreground">Explanation</span>
+                      <p className="mt-1 break-words text-muted-foreground">{a.explanation}</p>
                     </div>
                   )}
                 </div>
