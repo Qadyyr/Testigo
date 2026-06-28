@@ -34,7 +34,7 @@ export async function PATCH(
       where: { id },
       select: { createdBy: true },
     })
-    if (!test || test.createdBy !== session.user.id) {
+    if (!test || (test.createdBy !== session.user.id && session.user.role !== "SUPER_ADMIN")) {
       return fail('Test not found', 404)
     }
 
@@ -91,7 +91,7 @@ export async function DELETE(
       where: { id },
       select: { createdBy: true },
     })
-    if (!test || test.createdBy !== session.user.id) {
+    if (!test || (test.createdBy !== session.user.id && session.user.role !== "SUPER_ADMIN")) {
       return fail('Test not found', 404)
     }
 

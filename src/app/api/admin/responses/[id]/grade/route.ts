@@ -53,7 +53,7 @@ export async function PATCH(
       where: { id: response.question.testId },
       select: { createdBy: true },
     })
-    if (!test || test.createdBy !== session.user.id) {
+    if (!test || (test.createdBy !== session.user.id && session.user.role !== "SUPER_ADMIN")) {
       return fail('Not found', 404)
     }
 

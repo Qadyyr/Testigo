@@ -7,7 +7,9 @@ import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import {
   BarChart3,
+  Clock,
   Copy,
+  Database as DatabaseIcon,
   FileText,
   LayoutDashboard,
   Loader2,
@@ -22,6 +24,9 @@ import {
   Trash2,
   TrendingUp,
   Users,
+  UserCheck,
+  UserX,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -236,22 +241,28 @@ function NavItem({
   )
 }
 
-type AdminSection = 'dashboard' | 'tests' | 'analytics' | 'settings'
+type AdminSection = 'dashboard' | 'tests' | 'analytics' | 'settings' | 'admins' | 'database'
 
 function SidebarNav({
   section,
   onSection,
   onNavigate,
+  isSuperAdmin,
 }: {
   section: AdminSection
   onSection: (s: AdminSection) => void
   onNavigate?: () => void
+  isSuperAdmin: boolean
 }) {
   const items: { icon: NavIcon; label: string; key: AdminSection }[] = [
     { icon: LayoutDashboard, label: 'Dashboard', key: 'dashboard' },
     { icon: FileText, label: 'Tests', key: 'tests' },
     { icon: BarChart3, label: 'Analytics', key: 'analytics' },
     { icon: SettingsIcon, label: 'Settings', key: 'settings' },
+  ]
+  const superItems: { icon: NavIcon; label: string; key: AdminSection }[] = [
+    { icon: Users, label: 'Admins', key: 'admins' },
+    { icon: DatabaseIcon, label: 'Database', key: 'database' },
   ]
   return (
     <nav className="flex flex-col gap-1 px-3 py-4">
@@ -267,6 +278,25 @@ function SidebarNav({
           }}
         />
       ))}
+      {isSuperAdmin && (
+        <>
+          <div className="my-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Super Admin
+          </div>
+          {superItems.map((item) => (
+            <NavItem
+              key={item.key}
+              icon={item.icon}
+              label={item.label}
+              active={section === item.key}
+              onClick={() => {
+                onSection(item.key)
+                onNavigate?.()
+              }}
+            />
+          ))}
+        </>
+      )}
     </nav>
   )
 }
@@ -536,6 +566,7 @@ function AdminLayout({
   section,
   onSection,
   pageTitle,
+  isSuperAdmin,
   children,
 }: {
   userEmail: string
@@ -546,6 +577,7 @@ function AdminLayout({
   section: AdminSection
   onSection: (s: AdminSection) => void
   pageTitle: string
+  isSuperAdmin: boolean
   children: React.ReactNode
 }) {
   return (
@@ -557,7 +589,7 @@ function AdminLayout({
             <Brand />
           </div>
           <div className="flex-1 overflow-y-auto">
-            <SidebarNav section={section} onSection={onSection} />
+            <SidebarNav section={section} onSection={onSection} isSuperAdmin={isSuperAdmin} />
           </div>
           <div className="shrink-0 border-t p-3">
             <Button
@@ -597,6 +629,7 @@ function AdminLayout({
                     section={section}
                     onSection={onSection}
                     onNavigate={() => setMobileNavOpen(false)}
+                    isSuperAdmin={isSuperAdmin}
                   />
                   <div className="mt-auto border-t p-3">
                     <Button
@@ -755,7 +788,11 @@ export function AdminDashboardView() {
     section === 'dashboard' ? 'Dashboard'
     : section === 'tests' ? 'Tests'
     : section === 'analytics' ? 'Analytics'
+    : section === 'admins' ? 'Admins'
+    : section === 'database' ? 'Database'
     : 'Settings'
+
+  const isSuperAdmin = getRole() === 'SUPER_ADMIN'
 
   return (
     <AdminLayout
@@ -767,6 +804,7 @@ export function AdminDashboardView() {
       section={section}
       onSection={setSection}
       pageTitle={pageTitle}
+      isSuperAdmin={isSuperAdmin}
     >
       {section === 'dashboard' && (
         <DashboardContent
@@ -777,6 +815,8 @@ export function AdminDashboardView() {
       {section === 'tests' && <TestsContent navigate={navigate} />}
       {section === 'analytics' && <AnalyticsOverviewContent navigate={navigate} />}
       {section === 'settings' && <SettingsContent />}
+      {section === 'admins' && isSuperAdmin && <AdminsContent />}
+      {section === 'database' && isSuperAdmin && <DatabaseContent />}
     </AdminLayout>
   )
 }
@@ -1191,6 +1231,233 @@ function SettingsContent() {
               {saving ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : 'Update password'}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ---- Admins management (Super Admin only) -----------------------------------
+
+interface AdminItem {
+  id: string
+  email: string
+  name: string | null
+  role: string
+  status: string
+  createdAt: string
+}
+interface AdminsResponse { success: boolean; data?: AdminItem[]; message?: string }
+
+function AdminsContent() {
+  const [admins, setAdmins] = useState<AdminItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [acting, setActing] = useState<string | null>(null)
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/admins', { credentials: 'include' })
+      const json: AdminsResponse = await res.json()
+      if (json.success && json.data) setAdmins(json.data)
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => { load() }, [])
+
+  async function handleAction(id: string, action: 'approve' | 'reject' | 'promote' | 'demote' | 'delete') {
+    setActing(id + action)
+    try {
+      const res = await fetch(`/api/admin/admins/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        toast.success(json.message)
+        if (action === 'delete') {
+          setAdmins((a) => a.filter((x) => x.id !== id))
+        } else {
+          load()
+        }
+      } else {
+        toast.error(json.message ?? 'Action failed')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setActing(null)
+    }
+  }
+
+  if (loading) return <div className="flex flex-col gap-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
+
+  const pending = admins.filter((a) => a.status === 'PENDING')
+  const approved = admins.filter((a) => a.status === 'APPROVED')
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Pending requests */}
+      {pending.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="size-4 text-amber-600" />
+              Pending requests ({pending.length})
+            </CardTitle>
+            <CardDescription>Review and approve or reject account requests</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {pending.map((a) => (
+              <div key={a.id} className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">{a.name}</p>
+                  <p className="text-xs text-muted-foreground">{a.email}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Requested {formatDate(a.createdAt)}</p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleAction(a.id, 'approve')}
+                    disabled={!!acting}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  >
+                    {acting === a.id + 'approve' ? <Loader2 className="size-4 animate-spin" /> : <UserCheck className="size-4" />}
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleAction(a.id, 'reject')}
+                    disabled={!!acting}
+                  >
+                    {acting === a.id + 'reject' ? <Loader2 className="size-4 animate-spin" /> : <UserX className="size-4" />}
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* All admins */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">All admin accounts</CardTitle>
+          <CardDescription>{approved.length} approved · {pending.length} pending</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {admins.map((a) => (
+            <div key={a.id} className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium">{a.name}</p>
+                  {a.role === 'SUPER_ADMIN' && (
+                    <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                      <ShieldCheck className="size-3" /> Super Admin
+                    </Badge>
+                  )}
+                  {a.status === 'PENDING' && (
+                    <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">Pending</Badge>
+                  )}
+                  {a.status === 'REJECTED' && (
+                    <Badge variant="destructive">Rejected</Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">{a.email}</p>
+              </div>
+              {a.status === 'APPROVED' && (
+                <div className="flex shrink-0 gap-1.5">
+                  {a.role === 'ADMIN' && (
+                    <Button size="sm" variant="outline" onClick={() => handleAction(a.id, 'promote')} disabled={!!acting}>
+                      Promote
+                    </Button>
+                  )}
+                  {a.role === 'SUPER_ADMIN' && (
+                    <Button size="sm" variant="outline" onClick={() => handleAction(a.id, 'demote')} disabled={!!acting}>
+                      Demote
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleAction(a.id, 'delete')} disabled={!!acting}>
+                    {acting === a.id + 'delete' ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ---- Database usage (Super Admin only) -------------------------------------
+
+interface DbUsage {
+  usedBytes: number
+  limitBytes: number
+  percentage: number
+  usedMB: number
+  limitMB: number
+}
+interface DbUsageResponse { success: boolean; data?: DbUsage; message?: string }
+
+function DatabaseContent() {
+  const [usage, setUsage] = useState<DbUsage | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/database-usage', { credentials: 'include' })
+      const json: DbUsageResponse = await res.json()
+      if (json.success && json.data) setUsage(json.data)
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => { load() }, [])
+
+  if (loading || !usage) return <div className="flex flex-col gap-3">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
+
+  const color = usage.percentage < 70 ? 'bg-emerald-500' : usage.percentage < 90 ? 'bg-amber-500' : 'bg-destructive'
+
+  return (
+    <div className="mx-auto w-full max-w-2xl">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <DatabaseIcon className="size-4 text-emerald-600" />
+            Database usage
+          </CardTitle>
+          <CardDescription>Real-time PostgreSQL storage on Neon (free tier)</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-end justify-between">
+            <div>
+              <span className="text-3xl font-bold tabular-nums">{usage.percentage}%</span>
+              <span className="ml-2 text-sm text-muted-foreground">used</span>
+            </div>
+            <div className="text-right text-sm text-muted-foreground">
+              <p className="font-mono">{usage.usedMB} MB / {usage.limitMB} MB</p>
+            </div>
+          </div>
+          <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
+            <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${Math.min(usage.percentage, 100)}%` }} />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Neon free tier includes 512 MB of storage. The database auto-pauses when idle
+            (resumes in ~1s on first request). Data includes tests, questions, attempts,
+            responses, and all admin/participant records.
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -30,7 +30,7 @@ export async function POST(
       where: { id },
       select: { id: true, createdBy: true, resultReleaseMode: true },
     })
-    if (!test || test.createdBy !== session.user.id) {
+    if (!test || (test.createdBy !== session.user.id && session.user.role !== "SUPER_ADMIN")) {
       return fail('Test not found', 404)
     }
 

@@ -48,6 +48,28 @@ export function LoginView() {
     setFormError(null)
     setSubmitting(true)
     try {
+      // Pre-check account status to give a clear message for pending/rejected.
+      const checkRes = await fetch('/api/auth/check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: values.email }),
+      })
+      if (checkRes.ok) {
+        const checkJson = await checkRes.json()
+        if (checkJson.status === 'PENDING') {
+          setFormError('Your account is awaiting approval from the administrator.')
+          toast.error('Account pending approval.')
+          setSubmitting(false)
+          return
+        }
+        if (checkJson.status === 'REJECTED') {
+          setFormError('Your registration request was rejected. Contact the administrator.')
+          toast.error('Account rejected.')
+          setSubmitting(false)
+          return
+        }
+      }
+
       const res = await signIn('credentials', {
         email: values.email,
         password: values.password,
@@ -159,7 +181,16 @@ export function LoginView() {
           </form>
         </Card>
 
-        <div className="mt-6 flex justify-center">
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={() => navigate('register')}
+            className="text-muted-foreground"
+          >
+            Don&apos;t have an account? Request access
+          </Button>
           <Button
             type="button"
             variant="link"

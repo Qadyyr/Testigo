@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { useViewRouter } from './use-view-router'
 import { HomeView } from './views/home-view'
 import { LoginView } from './views/login-view'
+import { RegisterView } from './views/register-view'
 import { AdminDashboardView } from './views/admin-dashboard-view'
 import { CreateTestView } from './views/create-test-view'
 import { AnalyticsView } from './views/analytics-view'
@@ -19,6 +20,9 @@ function ViewSwitch() {
   switch (view) {
     case 'login':
       content = <LoginView />
+      break
+    case 'register':
+      content = <RegisterView />
       break
     case 'admin':
       content = <AdminDashboardView />

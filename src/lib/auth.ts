@@ -31,6 +31,9 @@ export const authOptions: NextAuthOptions = {
         const admin = await db.admin.findUnique({ where: { email } })
         if (!admin) return null
 
+        // Block login for pending/rejected accounts.
+        if (admin.status !== 'APPROVED') return null
+
         const ok = await bcrypt.compare(password, admin.passwordHash)
         if (!ok) return null
 

@@ -24,8 +24,11 @@ export async function GET() {
       return fail('Unauthorized', 401)
     }
 
+    // Super Admin sees all tests; regular Admin sees only their own.
+    const testFilter = session.user.role === 'SUPER_ADMIN' ? {} : { createdBy: session.user.id }
+
     const tests = await db.test.findMany({
-      where: { createdBy: session.user.id },
+      where: testFilter,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

@@ -29,15 +29,16 @@ export async function GET() {
       )
     }
 
-    const adminId = session.user.id
+    // Super Admin sees all tests; regular Admin sees only their own.
+    const testFilter = session.user.role === 'SUPER_ADMIN' ? {} : { createdBy: session.user.id }
 
     const [totalTests, publishedTests, totalAttempts, recentRows, gradedAgg] =
       await Promise.all([
-        db.test.count({ where: { createdBy: adminId } }),
-        db.test.count({ where: { createdBy: adminId, isPublished: true } }),
-        db.attempt.count({ where: { test: { createdBy: adminId } } }),
+        db.test.count({ where: testFilter }),
+        db.test.count({ where: { ...testFilter, isPublished: true } }),
+        db.attempt.count({ where: { test: testFilter } }),
         db.test.findMany({
-          where: { createdBy: adminId },
+          where: testFilter,
           orderBy: { createdAt: 'desc' },
           take: 10,
           select: {
@@ -52,7 +53,7 @@ export async function GET() {
         db.attempt.aggregate({
           _avg: { totalScore: true },
           where: {
-            test: { createdBy: adminId },
+            test: testFilter,
             totalScore: { not: null },
             status: { in: ['SUBMITTED', 'AUTO_SUBMITTED'] },
           },
