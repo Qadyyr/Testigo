@@ -20,8 +20,8 @@ import { nanoid } from 'nanoid'
 import { db } from '../src/lib/db'
 
 async function main() {
-  const email = 'admin@testigo.test'
-  const password = 'admin1234'
+  const email = 'qadyyr@gmail.com'
+  const password = 'Q@deer00'
   const passwordHash = await bcrypt.hash(password, 10)
 
   const admin = await db.admin.upsert({
@@ -30,7 +30,7 @@ async function main() {
     create: {
       email,
       passwordHash,
-      name: 'Testigo Admin',
+      name: 'Qadyyr',
       role: 'SUPER_ADMIN',
     },
   })
