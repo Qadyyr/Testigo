@@ -230,3 +230,18 @@ Work Log:
 
 Stage Summary:
 - Live verified: home → enter "PUB2024" → opens pubdemo → start → answer → submit → "100% — 2 of 2 correct" with explanations. The phone-lookup flow is gone; students just enter a code or use a link. Lint + tsc clean.
+
+---
+Task ID: 14
+Agent: orchestrator (main)
+Task: Add question preview step to bulk import (admin verifies questions before proceeding) + ensure every import format shows question type.
+
+Work Log:
+- New QuestionPreview component in create-test-view.tsx: renders every parsed question read-only with: number, type badge (MCQ=emerald, TRUE_FALSE=amber, SHORT=sky), question text, all options with correct answer highlighted emerald + check icon, acceptable answers box for SHORT, explanation in muted box. Scrollable (max-h-28rem) for large sets.
+- Preview appears at TWO points: (1) "ready to import" — before clicking Import, so admin can verify; (2) "imported" — after import, before proceeding to Step 2. Both show the full preview.
+- Type badges color-coded per type (Multiple Choice / True-False / Short Answer).
+- All 3 sample formats (CSV/JSON/MD) already include `type` per question (MCQ/TRUE_FALSE/SHORT) — no change needed there.
+- Pushed to GitHub, Vercel auto-deployed.
+
+Stage Summary:
+- Live verified on Vercel: admin → Create Test → Step 1 → Load sample → Run dry run → shows "4 valid, 1 error" + PREVIEW card with all 4 questions rendered (type badges, correct answers highlighted, explanations). Admin can verify everything before importing. Lint + tsc clean.
