@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useViewRouter } from './use-view-router'
 import { HomeView } from './views/home-view'
 import { LoginView } from './views/login-view'
@@ -64,8 +65,14 @@ export function AppShell() {
       {/* useSearchParams requires a Suspense boundary in Next 16. */}
       <Suspense
         fallback={
-          <div className="flex flex-1 items-center justify-center">
-            <span className="text-sm text-muted-foreground">Loading…</span>
+          <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6">
+            <div className="flex flex-col gap-6">
+              <Skeleton className="h-9 w-64" />
+              <Skeleton className="h-5 w-96 max-w-full" />
+              <div className="mt-4 max-w-md">
+                <Skeleton className="h-32 w-full rounded-xl" />
+              </div>
+            </div>
           </div>
         }
       >

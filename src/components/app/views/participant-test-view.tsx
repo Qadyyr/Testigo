@@ -925,8 +925,26 @@ function Taking({
 
   if (loading || !loadData) {
     return (
-      <div className="flex flex-1 items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
+        <div className="mb-4 flex items-center justify-between">
+          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-6 w-16" />
+        </div>
+        <Skeleton className="mb-6 h-1.5 w-full rounded-full" />
+        <Card>
+          <CardHeader className="gap-4">
+            <Skeleton className="h-6 w-3/4" />
+            <div className="flex gap-2">
+              <Skeleton className="h-5 w-16" />
+              <Skeleton className="h-5 w-16" />
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </CardContent>
+        </Card>
       </div>
     )
   }
