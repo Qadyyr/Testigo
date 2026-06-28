@@ -25,7 +25,7 @@ const bodySchema = z.object({
   timeLimitMinutes: z.number().int().positive().optional().nullable(),
   accessMode: z.enum(['PUBLIC', 'WHITELIST', 'INVITE']),
   requireCode: z.boolean().default(false),
-  accessCode: z.string().min(1).max(100).optional(),
+  accessCode: z.string().min(1, 'Test code is required').max(100),
   maxAttempts: z.number().int().min(1).default(1),
   resultReleaseMode: z.enum(['IMMEDIATE', 'MANUAL', 'NEVER']).default('IMMEDIATE'),
   // Test-level marks — applied to ALL questions (not in the import format).
@@ -66,9 +66,10 @@ export async function POST(req: Request) {
     }
     const b = parsed.data
 
-    // Code overlay validation: if requireCode is true, accessCode must be set.
-    if (b.requireCode && !b.accessCode) {
-      return fail('Access code is required when "Require access code" is enabled', 400)
+    // accessCode is required — it's the join code students use on the home page.
+    // requireCode controls whether it's ALSO enforced as a password at the gate.
+    if (!b.accessCode) {
+      return fail('A test code is required (students use it to open the test)', 400)
     }
     if (b.accessMode === 'WHITELIST' && (!b.whitelist || b.whitelist.length === 0)) {
       return fail('At least one phone number is required for WHITELIST mode', 400)
@@ -92,7 +93,7 @@ export async function POST(req: Request) {
         timeLimitMinutes: b.timeLimitMinutes ?? null,
         accessMode: b.accessMode,
         requireCode: b.requireCode,
-        accessCode: b.requireCode ? b.accessCode! : null,
+        accessCode: b.accessCode,
         maxAttempts: b.maxAttempts,
         resultReleaseMode: b.resultReleaseMode,
         positiveMarks: b.positiveMarks,

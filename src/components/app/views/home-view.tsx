@@ -28,17 +28,9 @@ import { useViewRouter } from '../use-view-router'
 
 // ---- API contracts ---------------------------------------------------------
 
-interface LookupTest {
-  id: string
-  title: string
+interface ResolveCodeResponse {
   shareableLink: string
-}
-interface LookupResponse {
-  count: number
-  tests: LookupTest[]
-}
-interface ResolveResponse {
-  shareableLink: string
+  requireCode: boolean
 }
 interface ApiEnvelope<T> {
   success: boolean
@@ -76,17 +68,38 @@ function ThemeToggle() {
   )
 }
 
+/**
+ * Accepts either a raw test code (e.g. "GK2024") or a full test URL
+ * (e.g. "https://testigo.vercel.app/?t=abc123") and returns the token
+ * to navigate to, plus whether it was a direct link.
+ */
+function parseInput(raw: string): { link?: string; code?: string } {
+  const trimmed = raw.trim()
+  if (!trimmed) return {}
+  // If it looks like a URL, try to extract the `t` param.
+  if (trimmed.includes('://') || trimmed.startsWith('?t=')) {
+    try {
+      const url = new URL(trimmed.startsWith('?') ? `http://x${trimmed}` : trimmed)
+      const t = url.searchParams.get('t')
+      if (t) return { link: t }
+    } catch {
+      // not a valid URL — treat as a code
+    }
+  }
+  return { code: trimmed }
+}
+
 // ---- terminal accent (decorative, tech feel) ------------------------------
 
 function TerminalAccent() {
   const reduceMotion = useReducedMotion()
   const lines = [
-    { p: '$', t: 'testigo identify', c: 'text-foreground' },
-    { p: '↳', t: 'phone registered ✓', c: 'text-emerald-600 dark:text-emerald-400' },
-    { p: '$', t: 'testigo tests', c: 'text-foreground' },
-    { p: '↳', t: '2 tests found for you', c: 'text-muted-foreground' },
-    { p: '$', t: 'testigo start --code GK2024', c: 'text-foreground' },
-    { p: '↳', t: 'opening secure session…', c: 'text-emerald-600 dark:text-emerald-400' },
+    { p: '$', t: 'testigo open --code GK2024', c: 'text-foreground' },
+    { p: '↳', t: 'test found ✓', c: 'text-emerald-600 dark:text-emerald-400' },
+    { p: '$', t: 'verifying access…', c: 'text-foreground' },
+    { p: '↳', t: 'session started', c: 'text-emerald-600 dark:text-emerald-400' },
+    { p: '$', t: 'testigo start', c: 'text-foreground' },
+    { p: '↳', t: 'good luck! 🎯', c: 'text-muted-foreground' },
   ]
   return (
     <Card className="overflow-hidden border-border/60 bg-muted/40 shadow-sm">
@@ -132,99 +145,54 @@ function TerminalAccent() {
 
 // ---- main view -------------------------------------------------------------
 
-type Step =
-  | { name: 'entry' }
-  | { name: 'looking' }
-  | { name: 'multiple'; tests: LookupTest[] }
-  | { name: 'none' }
-  | { name: 'error'; message: string }
-
 export function HomeView() {
   const { navigate } = useViewRouter()
   const reduceMotion = useReducedMotion()
 
-  const [identifier, setIdentifier] = useState('')
-  const [step, setStep] = useState<Step>({ name: 'entry' })
-  const [code, setCode] = useState('')
-  const [resolving, setResolving] = useState(false)
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [notFound, setNotFound] = useState(false)
 
-  async function handleLookup(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const id = identifier.trim()
-    if (!id) {
-      toast.error('Enter your registered phone number.')
+    const { link, code } = parseInput(input)
+    if (!link && !code) {
+      toast.error('Enter a test code or paste your test link.')
       return
     }
-    setStep({ name: 'looking' })
+
+    // Direct link — go straight to the test.
+    if (link) {
+      navigate(undefined, { t: link })
+      return
+    }
+
+    // Code — resolve via the API.
+    setLoading(true)
+    setNotFound(false)
     try {
-      const res = await fetch('/api/tests/lookup', {
+      const res = await fetch('/api/tests/resolve-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: id }),
+        body: JSON.stringify({ code }),
       })
-      const json: ApiEnvelope<LookupResponse> = await res.json()
+      const json: ApiEnvelope<ResolveCodeResponse> = await res.json()
       if (!res.ok || !json.success || !json.data) {
-        throw new Error(json.message || 'Lookup failed')
+        setNotFound(true)
+        return
       }
-      const { count, tests } = json.data
-      // Remember identifier for the landing page to prefill (ephemeral, per-tab).
+      // Remember the code so the participant gate can skip re-entering it.
       try {
-        sessionStorage.setItem('testigo:identifier', id)
+        sessionStorage.setItem('testigo:code', code!)
       } catch {
-        /* sessionStorage may be unavailable; non-fatal */
-      }
-      if (count === 1) {
-        navigate(undefined, { t: tests[0].shareableLink })
-      } else if (count === 0) {
-        setStep({ name: 'none' })
-      } else {
-        setStep({ name: 'multiple', tests })
-      }
-    } catch (err) {
-      setStep({
-        name: 'error',
-        message: err instanceof Error ? err.message : 'Network error',
-      })
-    }
-  }
-
-  async function handleResolve(e: FormEvent) {
-    e.preventDefault()
-    const id = identifier.trim()
-    if (!id) {
-      toast.error('Enter your registered phone number.')
-      return
-    }
-    if (!code.trim()) {
-      toast.error('Enter the test code your administrator gave you.')
-      return
-    }
-    setResolving(true)
-    try {
-      const res = await fetch('/api/tests/resolve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: id, code: code.trim() }),
-      })
-      const json: ApiEnvelope<ResolveResponse> = await res.json()
-      if (!res.ok || !json.success || !json.data) {
-        throw new Error(json.message || 'Invalid code')
+        /* non-fatal */
       }
       navigate(undefined, { t: json.data.shareableLink })
-    } catch (err) {
-      toast.error(
-        err instanceof Error && err.message === 'Invalid code'
-          ? 'That code does not match any of your tests.'
-          : 'Could not verify the code. Try again.'
-      )
+    } catch {
+      toast.error('Network error. Try again.')
     } finally {
-      setResolving(false)
+      setLoading(false)
     }
-  }
-
-  function reset() {
-    setStep({ name: 'entry' })
-    setCode('')
   }
 
   const fade = (delay: number) => ({
@@ -240,10 +208,7 @@ export function HomeView() {
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
           <button
             type="button"
-            onClick={() => {
-              reset()
-              navigate('home')
-            }}
+            onClick={() => navigate('home')}
             className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             aria-label="Testigo — home"
           >
@@ -286,172 +251,60 @@ export function HomeView() {
             {...fade(0.08)}
             className="max-w-md text-base text-muted-foreground text-pretty sm:text-lg"
           >
-            Enter the phone number your administrator registered. We&apos;ll
-            open the tests assigned to you — nothing else.
+            Enter the code your administrator gave you, or paste your test link
+            to jump straight in.
           </motion.p>
 
-          {/* Entry / multi / not-found card */}
+          {/* Entry card */}
           <motion.div {...fade(0.12)} className="w-full max-w-md">
-            {step.name === 'entry' && (
-              <Card>
-                <CardHeader className="gap-1.5">
-                  <CardTitle className="text-base">Access your tests</CardTitle>
-                  <CardDescription>
-                    Use the phone number your admin added to the test.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleLookup} className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="identifier" className="text-xs">
-                        Phone number
-                      </Label>
-                      <Input
-                        id="identifier"
-                        type="tel"
-                        autoComplete="tel"
-                        placeholder="+92 300 1234567"
-                        value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
-                    >
-                      Continue
-                      <ArrowRight className="size-4" />
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            )}
-
-            {step.name === 'looking' && (
-              <Card>
-                <CardContent className="flex items-center gap-3 py-6">
-                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Looking up your tests…
-                  </span>
-                </CardContent>
-              </Card>
-            )}
-
-            {step.name === 'multiple' && (
-              <Card>
-                <CardHeader className="gap-1.5">
-                  <CardTitle className="text-base">
-                    {step.tests.length} tests found for you
-                  </CardTitle>
-                  <CardDescription>
-                    Enter the code for the test you want to open.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <ul className="flex flex-col gap-1.5 rounded-md border bg-muted/30 p-3">
-                    {step.tests.map((t) => (
-                      <li
-                        key={t.id}
-                        className="flex items-center gap-2 text-sm"
-                      >
-                        <span className="size-1.5 rounded-full bg-emerald-500" />
-                        {t.title}
-                      </li>
-                    ))}
-                  </ul>
-                  <form
-                    onSubmit={handleResolve}
-                    className="flex flex-col gap-3"
-                  >
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor="code" className="text-xs">
-                        Test code
-                      </Label>
-                      <Input
-                        id="code"
-                        type="text"
-                        autoComplete="off"
-                        placeholder="e.g. GK2024"
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        className="font-mono uppercase"
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      disabled={resolving}
-                      className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
-                    >
-                      {resolving ? (
-                        <>
-                          <Loader2 className="size-4 animate-spin" />
-                          Verifying…
-                        </>
-                      ) : (
-                        <>
-                          Open test
-                          <ArrowRight className="size-4" />
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="self-start text-xs text-muted-foreground underline-offset-4 hover:underline"
-                  >
-                    Use a different phone number
-                  </button>
-                </CardContent>
-              </Card>
-            )}
-
-            {step.name === 'none' && (
-              <Card>
-                <CardHeader className="gap-1.5">
-                  <CardTitle className="text-base">No tests found</CardTitle>
-                  <CardDescription>
-                    We couldn&apos;t find any tests registered for{' '}
-                    <span className="font-medium text-foreground">
-                      {identifier}
-                    </span>
-                    . Contact your administrator if this seems wrong.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
+            <Card>
+              <CardHeader className="gap-1.5">
+                <CardTitle className="text-base">Open a test</CardTitle>
+                <CardDescription>
+                  {notFound
+                    ? 'No test found for that code. Check it and try again.'
+                    : 'Enter your test code (e.g. GK2024) or paste the test link.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="test-input" className="text-xs">
+                      Test code or link
+                    </Label>
+                    <Input
+                      id="test-input"
+                      type="text"
+                      autoComplete="off"
+                      placeholder="GK2024  ·  or paste link"
+                      value={input}
+                      onChange={(e) => {
+                        setInput(e.target.value)
+                        setNotFound(false)
+                      }}
+                      className="font-mono"
+                    />
+                  </div>
                   <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={reset}
+                    type="submit"
+                    disabled={loading || !input.trim()}
+                    className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
                   >
-                    Try again
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Opening…
+                      </>
+                    ) : (
+                      <>
+                        Open test
+                        <ArrowRight className="size-4" />
+                      </>
+                    )}
                   </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {step.name === 'error' && (
-              <Card>
-                <CardHeader className="gap-1.5">
-                  <CardTitle className="text-base">
-                    Something went wrong
-                  </CardTitle>
-                  <CardDescription>{step.message}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={reset}
-                  >
-                    Try again
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                </form>
+              </CardContent>
+            </Card>
           </motion.div>
         </section>
 

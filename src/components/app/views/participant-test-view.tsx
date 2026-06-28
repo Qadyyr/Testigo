@@ -529,14 +529,14 @@ function Gating({
   onAlreadyAttempted: (data: ResultData | null) => void
   sessionToken: string
 }) {
-  const [identifier, setIdentifier] = useState(() => {
+  const [identifier, setIdentifier] = useState('')
+  const [code, setCode] = useState(() => {
     try {
-      return sessionStorage.getItem('testigo:identifier') ?? ''
+      return sessionStorage.getItem('testigo:code') ?? ''
     } catch {
       return ''
     }
   })
-  const [code, setCode] = useState('')
   const [invite, setInvite] = useState(inviteToken)
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
@@ -551,11 +551,6 @@ function Gating({
         return
       }
       body.identifier = identifier.trim()
-      try {
-        sessionStorage.setItem('testigo:identifier', identifier.trim())
-      } catch {
-        /* non-fatal */
-      }
     } else if (test.accessMode === 'INVITE') {
       if (!invite.trim()) {
         setError('Enter your invitation code.')

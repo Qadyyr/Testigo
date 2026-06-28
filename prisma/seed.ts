@@ -70,12 +70,12 @@ async function main() {
     },
     {
       link: 'pubdemo',
-      code: null,
+      code: 'PUB2024',
       requireCode: false,
       accessMode: 'PUBLIC',
       title: 'Public Practice Quiz',
       description:
-        'An open practice quiz — anyone with the link can take it. Two MCQ questions for testing auto-grading.',
+        'An open practice quiz — anyone with the link or code can take it. Two MCQ questions for testing auto-grading.',
       timeLimitMinutes: 10,
     },
   ]
@@ -142,10 +142,11 @@ async function main() {
   console.log('✅ Seed complete.')
   console.log('   Admin:        ', email, '/', password)
   console.log('   Tests:')
-  console.log('     demo123  (WHITELIST + code GK2024)  — student', studentPhone)
-  console.log('     demo456  (WHITELIST + code APT2024) — student', studentPhone)
-  console.log('     pubdemo  (PUBLIC, no code)           — anyone, 2 MCQs for auto-grade')
-  console.log('   Participant URLs: /?t=demo123  /?t=demo456  /?t=pubdemo')
+  console.log('     demo123  (WHITELIST, code GK2024)  — student', studentPhone)
+  console.log('     demo456  (WHITELIST, code APT2024) — student', studentPhone)
+  console.log('     pubdemo  (PUBLIC, code PUB2024)     — anyone, 2 MCQs for auto-grade')
+  console.log('   Home page: enter GK2024 / APT2024 / PUB2024 to open a test')
+  console.log('   Direct links: /?t=demo123  /?t=demo456  /?t=pubdemo')
 }
 
 main()

@@ -1274,16 +1274,29 @@ function Step3Access({
         </CardContent>
       </Card>
 
-      {/* Optional code overlay — stacks on any primary mode */}
+      {/* Test code — required, students use it to open the test */}
       <Card>
         <CardHeader>
-          <CardTitle>Access code (optional)</CardTitle>
+          <CardTitle>Test code</CardTitle>
           <CardDescription>
-            Add a shared passcode on top of the access mode above. Useful when
-            you want everyone to start at the same time.
+            Students enter this code on the home page to open your test. Make
+            it short and memorable.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="access-code" className="text-xs font-medium">
+              Test code <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="access-code"
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value)}
+              placeholder="e.g. GK2024"
+              className="font-mono uppercase"
+            />
+          </div>
+
           <Label
             htmlFor="require-code"
             className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition hover:bg-accent"
@@ -1294,27 +1307,13 @@ function Step3Access({
               onCheckedChange={setRequireCode}
             />
             <div className="flex-1 space-y-1">
-              <span className="text-sm font-medium">Require an access code</span>
+              <span className="text-sm font-medium">Require code at the gate</span>
               <p className="text-xs text-muted-foreground">
-                Participants must enter this code to start.
+                Students must re-enter the code before starting (extra security
+                for exams). Off = code is only used to find the test.
               </p>
             </div>
           </Label>
-
-          {requireCode ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="access-code" className="text-xs font-medium">
-                Access code
-              </Label>
-              <Input
-                id="access-code"
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-                placeholder="e.g. GK2024"
-                className="font-mono uppercase"
-              />
-            </div>
-          ) : null}
         </CardContent>
       </Card>
 
@@ -1400,12 +1399,12 @@ function Step4Review({
           return `${Number(inviteCount) || 0} single-use invite links`
         case 'PUBLIC':
         default:
-          return 'Anyone with the link'
+          return 'Anyone with the link or code'
       }
     })()
-    return requireCode
-      ? `${base} + code${accessCode ? `: ${accessCode}` : ' (not set)'}`
-      : base
+    const codePart = accessCode ? ` · code: ${accessCode}` : ' · no code set'
+    const gatePart = requireCode ? ' · code required at gate' : ''
+    return `${base}${codePart}${gatePart}`
   })()
 
   const rows: { label: string; value: ReactNode }[] = [
