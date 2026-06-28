@@ -117,9 +117,15 @@ export async function POST(
     let pendingCount = 0
     const gradedAnswers: Array<{
       questionId: string
-      userAnswer: unknown
+      questionText: string
+      type: string
+      options: string[]
+      userAnswer: number[] | string | null
+      correctAnswers: number[] | string[]
       isCorrect: boolean | null
       marksAwarded: number | null
+      positiveMarks: number
+      negativeMarks: number
     }> = []
 
     for (const q of questions) {
@@ -158,7 +164,18 @@ export async function POST(
         }
         obtainedMarks += marks
 
-        gradedAnswers.push({ questionId: q.id, userAnswer, isCorrect, marksAwarded: marks })
+        gradedAnswers.push({
+          questionId: q.id,
+          questionText: q.questionText,
+          type: q.type,
+          options: opts,
+          userAnswer: (userAnswer as number[] | null) ?? null,
+          correctAnswers: correctIdx,
+          isCorrect,
+          marksAwarded: marks,
+          positiveMarks: q.positiveMarks,
+          negativeMarks: q.negativeMarks,
+        })
         await db.response.update({
           where: { attemptId_questionId: { attemptId, questionId: q.id } },
           data: { isCorrect, marksAwarded: marks },
@@ -173,9 +190,15 @@ export async function POST(
         pendingCount++
         gradedAnswers.push({
           questionId: q.id,
-          userAnswer,
+          questionText: q.questionText,
+          type: q.type,
+          options: [],
+          userAnswer: (userAnswer as string | null) ?? null,
+          correctAnswers: acceptable,
           isCorrect: autoMatch ? true : null,
           marksAwarded: null,
+          positiveMarks: q.positiveMarks,
+          negativeMarks: q.negativeMarks,
         })
         await db.response.update({
           where: { attemptId_questionId: { attemptId, questionId: q.id } },

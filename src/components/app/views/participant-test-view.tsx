@@ -107,9 +107,15 @@ interface LoadResponse {
 }
 interface GradedAnswer {
   questionId: string
-  userAnswer: unknown
+  questionText: string
+  type: string
+  options: string[]
+  userAnswer: number[] | string | null
+  correctAnswers: number[] | string[]
   isCorrect: boolean | null
   marksAwarded: number | null
+  positiveMarks: number
+  negativeMarks: number
 }
 interface ResultData {
   score: number
@@ -1281,25 +1287,101 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
 
       {result.showResults && result.answers && result.answers.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Your answers</CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {result.answers.map((a, i) => (
-              <div key={a.questionId} className="flex items-start gap-3 rounded-md border p-3">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                  {i + 1}
-                </span>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    {a.isCorrect === true && <CheckCircle2 className="size-4 text-emerald-600" />}
-                    {a.isCorrect === false && <XCircle className="size-4 text-destructive" />}
-                    {a.isCorrect === null && <Clock className="size-4 text-amber-600" />}
-                    <span className="text-sm font-medium">
-                      {a.marksAwarded !== null ? `${a.marksAwarded} marks` : 'Pending'}
+          <CardHeader>
+            <CardTitle className="text-base">Review — questions &amp; answers</CardTitle>
+            <CardDescription>
+              Your selected answer is highlighted. The correct answer is marked with a check.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {result.answers.map((a, i) => {
+              const userSel = Array.isArray(a.userAnswer) ? a.userAnswer : []
+              const correct = Array.isArray(a.correctAnswers) ? a.correctAnswers : []
+              const isMcq = a.type === 'MCQ'
+              return (
+                <div key={a.questionId} className="rounded-lg border p-4">
+                  <div className="mb-3 flex items-start gap-3">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                      {i + 1}
                     </span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium leading-relaxed">{a.questionText}</p>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        {a.isCorrect === true && (
+                          <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                            <CheckCircle2 className="size-3" /> Correct
+                          </Badge>
+                        )}
+                        {a.isCorrect === false && (
+                          <Badge variant="destructive">
+                            <XCircle className="size-3" /> Incorrect
+                          </Badge>
+                        )}
+                        {a.isCorrect === null && (
+                          <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                            <Clock className="size-3" /> Pending review
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {a.marksAwarded !== null ? `+${a.marksAwarded}` : '—'} / {a.positiveMarks}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
+
+                  {isMcq ? (
+                    <div className="flex flex-col gap-1.5 pl-10">
+                      {a.options.map((opt, oi) => {
+                        const userPicked = userSel.includes(oi)
+                        const isCorrectOpt = correct.includes(oi)
+                        return (
+                          <div
+                            key={oi}
+                            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                              isCorrectOpt
+                                ? 'border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/30'
+                                : userPicked
+                                  ? 'border-destructive/40 bg-destructive/5'
+                                  : 'border-border'
+                            }`}
+                          >
+                            {isCorrectOpt ? (
+                              <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+                            ) : userPicked ? (
+                              <XCircle className="size-4 shrink-0 text-destructive" />
+                            ) : (
+                              <span className="size-4 shrink-0 rounded-full border" />
+                            )}
+                            <span className={isCorrectOpt ? 'font-medium text-emerald-800 dark:text-emerald-200' : ''}>
+                              {opt}
+                            </span>
+                            {userPicked && !isCorrectOpt && (
+                              <span className="ml-auto text-xs text-destructive">your answer</span>
+                            )}
+                            {isCorrectOpt && (
+                              <span className="ml-auto text-xs text-emerald-600">correct</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 pl-10">
+                      <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+                        <span className="text-xs font-medium text-muted-foreground">Your answer</span>
+                        <p className="mt-1">{(a.userAnswer as string) || <span className="text-muted-foreground">No answer</span>}</p>
+                      </div>
+                      <div className="rounded-md border border-emerald-500/40 bg-emerald-50 p-3 text-sm dark:bg-emerald-950/30">
+                        <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Acceptable answers</span>
+                        <p className="mt-1 text-emerald-800 dark:text-emerald-200">
+                          {(a.correctAnswers as string[]).join(', ')}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </CardContent>
         </Card>
       )}

@@ -168,3 +168,17 @@ Stage Summary:
 - Full test-taking flow verified end-to-end via Agent Browser: pubdemo (PUBLIC) → Start Test → gate → Q1 "What is 2+2?" (click 4) → auto-save "1 answered" → Next → Q2 "Capital of France?" (click Paris) → Submit → confirm → RESULT "100% — 2 of 2 correct" with per-question marks. Auto-grading, backend timer, auto-save, palette all working. Lint clean.
 - Demo: pubdemo (public, no code, 2 MCQs) for the full flow; demo123 (whitelist +923001234567 + code GK2024); demo456 (whitelist + code APT2024). Admin: admin@testigo.test / admin1234.
 - Pending for Phase 5: manual TEXT grading UI, analytics dashboard, CSV export, manual result release + bulk email. Randomization (question/option order) not yet implemented. INVITE mode creates tokens but participant-side invite consumption via /?invite=<token> is wired but untested in browser.
+
+---
+Task ID: 10
+Agent: orchestrator (main)
+Task: Fix result review — participants couldn't see questions, their answers, or correct answers after submitting.
+
+Work Log:
+- Root cause: submit API only returned {questionId, userAnswer, isCorrect, marksAwarded} — no question text, options, or correct answers. Frontend had nothing to render a real review.
+- Fix API (submit route): gradedAnswers now includes questionText, type, options[], correctAnswers[], positiveMarks, negativeMarks. MCQ returns options + correct indices; TEXT returns acceptable answers.
+- Fix frontend (Result component): rewrote the review section. For MCQ: shows each question with full text, all options listed, the user's selection highlighted (red if wrong), the correct option highlighted (emerald + check), and marks badge. For TEXT: shows "Your answer" box + "Acceptable answers" box. Updated GradedAnswer interface to match.
+- Verified via Agent Browser: pubdemo → start → answer Q1 (4) → Q2 (Paris) → submit → result now shows "Review — questions & answers" with both questions fully expanded: "What is 2 + 2?" (options 3/4✓correct/5/22, +1/1) and "Capital of France?" (London/Berlin/Paris✓correct/Madrid, +1/1).
+
+Stage Summary:
+- Review now works. After submitting, participants see every question with its text, all options, which one they picked, which was correct, and their marks. Lint clean.
