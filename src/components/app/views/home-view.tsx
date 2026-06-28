@@ -95,11 +95,11 @@ function TerminalAccent() {
   const reduceMotion = useReducedMotion()
   const lines = [
     { p: '$', t: 'testigo open --code GK2024', c: 'text-foreground' },
-    { p: '↳', t: 'test found ✓', c: 'text-emerald-600 dark:text-emerald-400' },
+    { p: '↳', t: 'test found', c: 'text-emerald-600 dark:text-emerald-400' },
     { p: '$', t: 'verifying access…', c: 'text-foreground' },
     { p: '↳', t: 'session started', c: 'text-emerald-600 dark:text-emerald-400' },
     { p: '$', t: 'testigo start', c: 'text-foreground' },
-    { p: '↳', t: 'good luck! 🎯', c: 'text-muted-foreground' },
+    { p: '↳', t: 'good luck', c: 'text-muted-foreground' },
   ]
   return (
     <Card className="overflow-hidden border-border/60 bg-muted/40 shadow-sm">
@@ -252,7 +252,7 @@ export function HomeView() {
             className="max-w-md text-base text-muted-foreground text-pretty sm:text-lg"
           >
             Enter the code your administrator gave you, or paste your test link
-            to jump straight in.
+            to get started.
           </motion.p>
 
           {/* Entry card */}

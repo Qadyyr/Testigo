@@ -15,7 +15,6 @@ import {
   Flag,
   Grid,
   Loader2,
-  Lock,
   Play,
   RefreshCw,
   Send,
@@ -23,7 +22,6 @@ import {
   Timer,
   Users,
   Wifi,
-  WifiOff,
   XCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -432,7 +430,7 @@ function Landing({ test, onStart }: { test: ParticipantTest; onStart: () => void
       ? 'Test closed'
       : !test.scheduledOpen
         ? 'Not yet open'
-        : 'Start Test'
+        : 'Start test'
 
   const rules = [
     'Ensure you have a stable internet connection before starting.',

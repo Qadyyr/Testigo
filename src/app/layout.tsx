@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Testigo — Secure Test Platform",
   description:
-    "Production-grade, secure survey & testing platform. Admin-driven, effortless for participants.",
+    "Create and run secure online tests. Bulk import questions, auto-grade MCQs, and track results — no student accounts needed.",
   keywords: [
     "Testigo",
     "test platform",
@@ -32,14 +32,14 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Testigo",
-    description: "Secure, scalable test-taking platform",
+    description: "Create and run secure online tests.",
     siteName: "Testigo",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Testigo",
-    description: "Secure, scalable test-taking platform",
+    description: "Create and run secure online tests.",
   },
 };
 

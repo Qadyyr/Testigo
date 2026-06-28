@@ -15,12 +15,12 @@ export function SiteFooter() {
         <div className="flex flex-col gap-1.5">
           <Brand />
           <p className="text-xs text-muted-foreground">
-            Secure, scalable test-taking. Admin-driven. Effortless for participants.
+            Create and run secure online tests. No student accounts needed.
           </p>
         </div>
         <div className="flex flex-col gap-1 text-xs text-muted-foreground sm:text-right">
           <span>© {year} Testigo</span>
-          <span>Phase 1 · Foundation</span>
+          <span>Built for educators</span>
         </div>
       </div>
     </footer>
