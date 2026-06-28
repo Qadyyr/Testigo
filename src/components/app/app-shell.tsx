@@ -7,6 +7,8 @@ import { HomeView } from './views/home-view'
 import { LoginView } from './views/login-view'
 import { AdminDashboardView } from './views/admin-dashboard-view'
 import { CreateTestView } from './views/create-test-view'
+import { AnalyticsView } from './views/analytics-view'
+import { GradingView } from './views/grading-view'
 import { ParticipantTestView } from './views/participant-test-view'
 
 function ViewSwitch() {
@@ -23,6 +25,12 @@ function ViewSwitch() {
       break
     case 'create':
       content = <CreateTestView />
+      break
+    case 'analytics':
+      content = <AnalyticsView />
+      break
+    case 'grading':
+      content = <GradingView />
       break
     case 'test':
       content = <ParticipantTestView />

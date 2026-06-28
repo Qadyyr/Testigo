@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useMemo } from 'react'
 
-export type ViewName = 'home' | 'login' | 'admin' | 'create' | 'test'
+export type ViewName = 'home' | 'login' | 'admin' | 'create' | 'analytics' | 'grading' | 'test'
 
 export interface ViewRouter {
   view: ViewName
@@ -33,8 +33,10 @@ export function useViewRouter(): ViewRouter {
     ? 'test'
     : rawView === 'login' ||
         rawView === 'admin' ||
-        rawView === 'create'
-      ? (rawView as 'login' | 'admin' | 'create')
+        rawView === 'create' ||
+        rawView === 'analytics' ||
+        rawView === 'grading'
+      ? (rawView as 'login' | 'admin' | 'create' | 'analytics' | 'grading')
       : 'home'
 
   const navigate = useCallback(

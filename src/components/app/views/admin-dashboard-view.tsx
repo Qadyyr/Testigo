@@ -337,6 +337,7 @@ function EmptyTestsState() {
 }
 
 function RecentTestsTable({ tests }: { tests: RecentTest[] }) {
+  const { navigate } = useViewRouter()
   return (
     <div className="max-h-96 overflow-y-auto rounded-md border [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/40">
       <Table>
@@ -351,7 +352,11 @@ function RecentTestsTable({ tests }: { tests: RecentTest[] }) {
         </TableHeader>
         <TableBody>
           {tests.map((test) => (
-            <TableRow key={test.id}>
+            <TableRow
+              key={test.id}
+              onClick={() => navigate('analytics', { id: test.id })}
+              className="cursor-pointer transition-colors hover:bg-accent/50"
+            >
               <TableCell className="font-medium">{test.title}</TableCell>
               <TableCell>
                 <Badge
