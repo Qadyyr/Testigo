@@ -300,3 +300,19 @@ Work Log:
 
 Stage Summary:
 - Live verified on Vercel: admin → dashboard → click 'Math 1' test → analytics view shows 1 attempt, 50% avg, 4 questions, score distribution chart, per-question difficulty (Q1 100%, Q2 100%, Q3 0%, Q4 0%), Export CSV button, Results live badge. Lint + tsc clean. Phase 5 complete.
+
+---
+Task ID: 18
+Agent: orchestrator (main)
+Task: Make all 4 admin sidebar items functional (Dashboard, Tests, Analytics, Settings).
+
+Work Log:
+- Backend: GET /api/admin/tests (list all with counts), PATCH /api/admin/tests/[id] (toggle publish/rename), DELETE /api/admin/tests/[id] (cascade delete), POST /api/admin/change-password (bcrypt-verified).
+- Frontend: added AdminSection state to AdminDashboardView; SidebarNav now switches sections; AdminLayout passes section + onSection + pageTitle.
+- TestsContent: searchable list of all tests with badges (published/draft, access mode, code), copy-link, publish/unpublish toggle, delete with confirm dialog, click → analytics. Create Test button.
+- AnalyticsOverviewContent: 4 aggregate stat cards (total tests, published, total attempts, avg attempts/test) + per-test breakdown list (click → detailed analytics).
+- SettingsContent: change-password form (current + new + confirm, client-side validation, bcrypt-verified server-side).
+- Live verified: all 4 sidebar items work — Dashboard (overview), Tests (searchable list + manage), Analytics (aggregate + per-test), Settings (change password).
+
+Stage Summary:
+- All sidebar items functional. No more 'Soon' badges. Lint + tsc clean.
