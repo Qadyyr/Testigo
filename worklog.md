@@ -182,3 +182,17 @@ Work Log:
 
 Stage Summary:
 - Review now works. After submitting, participants see every question with its text, all options, which one they picked, which was correct, and their marks. Lint clean.
+
+---
+Task ID: 11
+Agent: orchestrator (main)
+Task: Deploy Testigo to Vercel (Neon Postgres) + fix build errors + verify live deployment.
+
+Work Log:
+- Switched schema to postgresql, removed standalone output, added postinstall:prisma generate, wrote DEPLOY.md.
+- Pushed schema + seed to Neon (ep-icy-union-atrgvemq.c-9.us-east-1.aws.neon.tech) — 1 admin, 3 tests, 2 questions, 2 whitelists.
+- Vercel build failed: stale normalizePhone import + whitelist.phone column (renamed in Phase 4), Prisma JsonNull for null JSON fields, missing useViewRouter in DashboardContent, type cast for review rendering. Ran tsc --noEmit, fixed all 6 src/ errors, pushed.
+- Live deployment verified end-to-end at https://testigo-beryl.vercel.app: home renders, admin login (admin@testigo.test/admin1234) → dashboard shows 3 tests, pubdemo public test → start → gate → take (timer+palette+autosave) → answer Q1(4)+Q2(Paris) → submit → RESULT "100% — 2 of 2 correct" with full review (questions, options, correct answers highlighted).
+
+Stage Summary:
+- PRODUCTION LIVE at https://testigo-beryl.vercel.app. Stack: Next.js 16 (Vercel) + Postgres (Neon) + NextAuth. $0/month. Full test-taking flow works on production: create (admin) → take (participant) → auto-grade → review. DB auto-pauses when idle (~1s cold start). All env vars set on Vercel.
