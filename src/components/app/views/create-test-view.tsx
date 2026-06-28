@@ -29,6 +29,8 @@ import {
   AlertCircle,
   Clock,
   Trophy,
+  Eye,
+  ListChecks,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -870,54 +872,204 @@ function DryRunResults({
 
       {result.valid.length > 0 ? (
         hasImported ? (
-          <Alert className="border-emerald-500/40 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
-            <CheckCircle2 className="size-4" />
-            <AlertTitle>
-              {imported?.length} question{imported?.length === 1 ? '' : 's'} imported
-            </AlertTitle>
-            <AlertDescription>
-              You can edit the content and run the dry run again to replace the
-              imported set.
-              <div className="mt-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onRerun}
-                >
-                  <FileText className="size-3.5" />
-                  Re-run
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <>
+            <Alert className="border-emerald-500/40 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+              <CheckCircle2 className="size-4" />
+              <AlertTitle>
+                {imported?.length} question{imported?.length === 1 ? '' : 's'} imported
+              </AlertTitle>
+              <AlertDescription>
+                Review the preview below, then continue. You can edit the content
+                and re-run to replace the imported set.
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onRerun}
+                  >
+                    <FileText className="size-3.5" />
+                    Re-run
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+            {imported && <QuestionPreview questions={imported} />}
+          </>
         ) : (
-          <Alert className="border-emerald-500/40 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
-            <CheckCircle2 className="size-4" />
-            <AlertTitle>
-              {result.valid.length} question
-              {result.valid.length === 1 ? '' : 's'} ready to import
-            </AlertTitle>
-            <AlertDescription>
-              Review the errors above (if any), then import the valid questions
-              to continue.
-              <div className="mt-3">
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={onImport}
-                  className="bg-emerald-600 text-white hover:bg-emerald-700"
-                >
-                  <Check className="size-3.5" />
-                  Import {result.valid.length} valid question
-                  {result.valid.length === 1 ? '' : 's'}
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <>
+            <Alert className="border-emerald-500/40 bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+              <CheckCircle2 className="size-4" />
+              <AlertTitle>
+                {result.valid.length} question
+                {result.valid.length === 1 ? '' : 's'} ready to import
+              </AlertTitle>
+              <AlertDescription>
+                Review the preview below. If everything looks correct, import to
+                continue.
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={onImport}
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  >
+                    <Check className="size-3.5" />
+                    Import {result.valid.length} valid question
+                    {result.valid.length === 1 ? '' : 's'}
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+            <QuestionPreview questions={result.valid} />
+          </>
         )
       ) : null}
     </div>
+  )
+}
+
+// ---- Question preview (read-only, shown after import) ----------------------
+
+function typeLabel(t: string): string {
+  switch (t) {
+    case 'MCQ':
+      return 'Multiple Choice'
+    case 'TRUE_FALSE':
+      return 'True / False'
+    case 'SHORT':
+      return 'Short Answer'
+    default:
+      return t
+  }
+}
+function typeBadgeClass(t: string): string {
+  switch (t) {
+    case 'MCQ':
+      return 'border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+    case 'TRUE_FALSE':
+      return 'border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300'
+    case 'SHORT':
+      return 'border-transparent bg-sky-500/15 text-sky-700 dark:text-sky-300'
+    default:
+      return ''
+  }
+}
+
+function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Eye className="size-4 text-emerald-600" />
+          Preview — {questions.length} question
+          {questions.length === 1 ? '' : 's'}
+        </CardTitle>
+        <CardDescription>
+          Review your questions below. Correct answers are highlighted. This is
+          exactly what students will see (without the correct-answer highlight).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="max-h-[28rem] space-y-3 overflow-y-auto rounded-lg border p-3 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+          {questions.map((q, i) => {
+            const correctIdx = Array.isArray(q.correctAnswers)
+              ? (q.correctAnswers as number[])
+              : []
+            const acceptable = Array.isArray(q.correctAnswers)
+              ? (q.correctAnswers as string[])
+              : []
+            return (
+              <div key={i} className="rounded-lg border bg-card p-4">
+                <div className="mb-2 flex items-start gap-3">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={typeBadgeClass(q.type)}
+                      >
+                        {typeLabel(q.type)}
+                      </Badge>
+                    </div>
+                    <p className="text-sm font-medium leading-relaxed">
+                      {q.questionText}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Options for MCQ / TRUE_FALSE */}
+                {(q.type === 'MCQ' || q.type === 'TRUE_FALSE') && (
+                  <div className="flex flex-col gap-1.5 pl-10">
+                    {q.options.map((opt, oi) => {
+                      const isCorrect = correctIdx.includes(oi)
+                      return (
+                        <div
+                          key={oi}
+                          className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${
+                            isCorrect
+                              ? 'border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/30'
+                              : 'border-border'
+                          }`}
+                        >
+                          {isCorrect ? (
+                            <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+                          ) : (
+                            <span className="size-3.5 shrink-0 rounded-full border" />
+                          )}
+                          <span
+                            className={
+                              isCorrect
+                                ? 'font-medium text-emerald-800 dark:text-emerald-200'
+                                : ''
+                            }
+                          >
+                            {opt}
+                          </span>
+                          {isCorrect && (
+                            <span className="ml-auto text-xs text-emerald-600">
+                              correct
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Acceptable answers for SHORT */}
+                {q.type === 'SHORT' && (
+                  <div className="flex flex-col gap-1.5 pl-10">
+                    <div className="rounded-md border border-emerald-500/40 bg-emerald-50 p-2.5 text-sm dark:bg-emerald-950/30">
+                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                        Acceptable answers
+                      </span>
+                      <p className="mt-0.5 text-emerald-800 dark:text-emerald-200">
+                        {acceptable.join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Explanation */}
+                {q.explanation && (
+                  <div className="mt-2 flex items-start gap-2 rounded-md border border-border bg-muted/20 p-2.5 pl-10 text-sm">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Explanation
+                    </span>
+                    <p className="flex-1 text-muted-foreground">
+                      {q.explanation}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
