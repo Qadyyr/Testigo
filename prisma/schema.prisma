@@ -1,17 +1,14 @@
 // Testigo — Prisma schema
-// DB: SQLite (sandbox). Designed so a Postgres/Supabase migration is trivial:
-//   - switch `provider` to "postgresql"
-//   - convert the String "enum" fields below to native `enum` types
-//   - Json fields work natively on Postgres too
-// All "enum-ish" fields are String here (SQLite has no Prisma enums).
-// Allowed values are documented inline and enforced with Zod in the API layer.
+// DB: PostgreSQL (Neon). All "enum-ish" fields are String with documented
+// allowed values, enforced via Zod in the API layer. Json fields are native
+// Postgres JSON. Designed for serverless (Vercel) + Neon serverless Postgres.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
