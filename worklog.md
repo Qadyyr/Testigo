@@ -258,3 +258,25 @@ Work Log:
 
 Stage Summary:
 - Both bugs fixed. Public tests now skip the redundant gate. Mobile test-taking UI has a sticky bottom bar (Questions toggle + Submit) instead of stacking the palette. Lint + tsc clean.
+
+---
+Task ID: 16
+Agent: orchestrator (main)
+Task: Fix mobile responsiveness for question previews (wizard Step-1 QuestionPreview + participant result Review).
+
+Work Log:
+- Diagnosed: both preview components used pl-10 (2.5rem left indent) which ate horizontal space on 375px screens; flex items-center + ml-auto labels overflowed; explanation label+text were inline and crammed.
+- Fixed both components (create-test-view.tsx QuestionPreview + participant-test-view.tsx Result review):
+  - pl-10 → sm:pl-10 (full-width on mobile, indented on desktop only)
+  - p-4 → p-3 sm:p-4, px-3 → px-2.5 (tighter mobile padding)
+  - flex items-center → flex items-start on mobile (icons align to text top, prevents vertical centering issues with wrapping text)
+  - Added min-w-0 flex-1 on option text + shrink-0 on labels (prevents overflow)
+  - flex-wrap on badges row (wraps on narrow screens instead of overflowing)
+  - explanation: inline label+text → stacked block label + break-words text
+  - break-words added to all text content (long answers/URLs don't overflow)
+- Live verified on Vercel at 375px (iPhone SE width):
+  - Result review: "100% — 2 of 2 correct" + both questions with options, correct highlights, explanations — overflowX=false, scrollH=1198
+  - Wizard preview: all 4 questions (MCQ/TRUE_FALSE/SHORT) with type badges, options, correct answers, explanations — overflowX=false, scrollH=2466
+
+Stage Summary:
+- Both question previews are now mobile-responsive. No horizontal overflow at 375px. Content stacks cleanly: question number + type badge + text on top, options full-width below, explanation as a stacked labeled box. Lint + tsc clean.
