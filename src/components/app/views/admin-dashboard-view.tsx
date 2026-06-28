@@ -1,21 +1,25 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import {
   BarChart3,
+  Copy,
   FileText,
   LayoutDashboard,
+  Loader2,
   LogOut,
   Menu,
   Moon,
   Plus,
   Rocket,
+  Search,
   Settings as SettingsIcon,
   Sun,
+  Trash2,
   TrendingUp,
   Users,
 } from 'lucide-react'
@@ -38,6 +42,8 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Sheet,
   SheetContent,
@@ -50,6 +56,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -219,33 +236,37 @@ function NavItem({
   )
 }
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+type AdminSection = 'dashboard' | 'tests' | 'analytics' | 'settings'
+
+function SidebarNav({
+  section,
+  onSection,
+  onNavigate,
+}: {
+  section: AdminSection
+  onSection: (s: AdminSection) => void
+  onNavigate?: () => void
+}) {
+  const items: { icon: NavIcon; label: string; key: AdminSection }[] = [
+    { icon: LayoutDashboard, label: 'Dashboard', key: 'dashboard' },
+    { icon: FileText, label: 'Tests', key: 'tests' },
+    { icon: BarChart3, label: 'Analytics', key: 'analytics' },
+    { icon: SettingsIcon, label: 'Settings', key: 'settings' },
+  ]
   return (
     <nav className="flex flex-col gap-1 px-3 py-4">
-      <NavItem
-        icon={LayoutDashboard}
-        label="Dashboard"
-        active
-        onClick={onNavigate}
-      />
-      <NavItem
-        icon={FileText}
-        label="Tests"
-        disabled
-        comingSoon="Tests management arrives in Phase 2"
-      />
-      <NavItem
-        icon={BarChart3}
-        label="Analytics"
-        disabled
-        comingSoon="Analytics arrives in Phase 5"
-      />
-      <NavItem
-        icon={SettingsIcon}
-        label="Settings"
-        disabled
-        comingSoon="Settings arrives in a later phase"
-      />
+      {items.map((item) => (
+        <NavItem
+          key={item.key}
+          icon={item.icon}
+          label={item.label}
+          active={section === item.key}
+          onClick={() => {
+            onSection(item.key)
+            onNavigate?.()
+          }}
+        />
+      ))}
     </nav>
   )
 }
@@ -512,6 +533,9 @@ function AdminLayout({
   onSignOut,
   mobileNavOpen,
   setMobileNavOpen,
+  section,
+  onSection,
+  pageTitle,
   children,
 }: {
   userEmail: string
@@ -519,6 +543,9 @@ function AdminLayout({
   onSignOut: () => void
   mobileNavOpen: boolean
   setMobileNavOpen: (open: boolean) => void
+  section: AdminSection
+  onSection: (s: AdminSection) => void
+  pageTitle: string
   children: React.ReactNode
 }) {
   return (
@@ -530,7 +557,7 @@ function AdminLayout({
             <Brand />
           </div>
           <div className="flex-1 overflow-y-auto">
-            <SidebarNav />
+            <SidebarNav section={section} onSection={onSection} />
           </div>
           <div className="shrink-0 border-t p-3">
             <Button
@@ -566,7 +593,11 @@ function AdminLayout({
                       <Brand />
                     </SheetTitle>
                   </SheetHeader>
-                  <SidebarNav onNavigate={() => setMobileNavOpen(false)} />
+                  <SidebarNav
+                    section={section}
+                    onSection={onSection}
+                    onNavigate={() => setMobileNavOpen(false)}
+                  />
                   <div className="mt-auto border-t p-3">
                     <Button
                       variant="ghost"
@@ -583,7 +614,7 @@ function AdminLayout({
                   </div>
                 </SheetContent>
               </Sheet>
-              <h1 className="text-base font-semibold sm:text-lg">Dashboard</h1>
+              <h1 className="text-base font-semibold sm:text-lg">{pageTitle}</h1>
             </div>
             <div className="flex items-center gap-1.5">
               <ThemeToggle />
@@ -638,6 +669,7 @@ export function AdminDashboardView() {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
   const [retryKey, setRetryKey] = useState(0)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [section, setSection] = useState<AdminSection>('dashboard')
 
   const navigateRef = useRef(navigate)
   navigateRef.current = navigate
@@ -719,6 +751,11 @@ export function AdminDashboardView() {
 
   const userEmail = session?.user?.email ?? ''
   const initials = userEmail ? userEmail.charAt(0).toUpperCase() : 'A'
+  const pageTitle =
+    section === 'dashboard' ? 'Dashboard'
+    : section === 'tests' ? 'Tests'
+    : section === 'analytics' ? 'Analytics'
+    : 'Settings'
 
   return (
     <AdminLayout
@@ -727,11 +764,435 @@ export function AdminDashboardView() {
       onSignOut={handleSignOut}
       mobileNavOpen={mobileNavOpen}
       setMobileNavOpen={setMobileNavOpen}
+      section={section}
+      onSection={setSection}
+      pageTitle={pageTitle}
     >
-      <DashboardContent
-        loadState={loadState}
-        onRetry={() => setRetryKey((k) => k + 1)}
-      />
+      {section === 'dashboard' && (
+        <DashboardContent
+          loadState={loadState}
+          onRetry={() => setRetryKey((k) => k + 1)}
+        />
+      )}
+      {section === 'tests' && <TestsContent navigate={navigate} />}
+      {section === 'analytics' && <AnalyticsOverviewContent navigate={navigate} />}
+      {section === 'settings' && <SettingsContent />}
     </AdminLayout>
+  )
+}
+
+// ---- Tests management section ----------------------------------------------
+
+interface TestItem {
+  id: string
+  title: string
+  description: string | null
+  accessMode: 'PUBLIC' | 'WHITELIST' | 'INVITE'
+  requireCode: boolean
+  accessCode: string | null
+  isPublished: boolean
+  timeLimitMinutes: number | null
+  resultReleaseMode: 'IMMEDIATE' | 'MANUAL' | 'NEVER'
+  createdAt: string
+  shareableLink: string
+  attemptCount: number
+  questionCount: number
+}
+interface TestsResponse { success: boolean; data?: TestItem[]; message?: string }
+
+function TestsContent({ navigate }: { navigate: (view?: string, extra?: Record<string, string>) => void }) {
+  const [tests, setTests] = useState<TestItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/tests', { credentials: 'include' })
+      if (res.status === 401) { navigate('login'); return }
+      const json: TestsResponse = await res.json()
+      if (json.success && json.data) setTests(json.data)
+      else throw new Error(json.message ?? 'Failed to load tests')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Network error')
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => { load() }, [])
+
+  async function handleTogglePublish(test: TestItem) {
+    const newPublished = !test.isPublished
+    try {
+      const res = await fetch(`/api/admin/tests/${test.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isPublished: newPublished }),
+      })
+      if (res.ok) {
+        toast.success(newPublished ? 'Test published' : 'Test unpublished')
+        setTests((ts) => ts.map((t) => t.id === test.id ? { ...t, isPublished: newPublished } : t))
+      } else {
+        toast.error('Could not update test')
+      }
+    } catch {
+      toast.error('Network error')
+    }
+  }
+
+  async function handleDelete(test: TestItem) {
+    setDeleting(test.id)
+    try {
+      const res = await fetch(`/api/admin/tests/${test.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (res.ok) {
+        toast.success('Test deleted')
+        setTests((ts) => ts.filter((t) => t.id !== test.id))
+      } else {
+        toast.error('Could not delete test')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  function copyLink(link: string) {
+    const url = `${window.location.origin}/?t=${link}`
+    navigator.clipboard.writeText(url)
+    toast.success('Link copied')
+  }
+
+  const filtered = tests.filter((t) =>
+    t.title.toLowerCase().includes(search.toLowerCase())
+  )
+
+  if (loading) return <div className="flex flex-col gap-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
+  if (error) return <p className="text-sm text-destructive">{error}</p>
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search tests…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Button onClick={() => navigate('create')} className="bg-emerald-600 text-white hover:bg-emerald-700">
+          <Plus className="size-4" /> Create Test
+        </Button>
+      </div>
+
+      {filtered.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+            <FileText className="size-10 text-muted-foreground" />
+            <p className="text-sm font-medium">{search ? 'No tests match your search' : 'No tests yet'}</p>
+            <p className="text-xs text-muted-foreground">
+              {search ? 'Try a different search term.' : 'Create your first test to get started.'}
+            </p>
+            {!search && (
+              <Button onClick={() => navigate('create')} className="bg-emerald-600 text-white hover:bg-emerald-700">
+                <Plus className="size-4" /> Create Test
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filtered.map((t) => (
+            <Card key={t.id} className="p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1 cursor-pointer" onClick={() => navigate('analytics', { id: t.id })}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold">{t.title}</h3>
+                    {t.isPublished ? (
+                      <Badge className="border-transparent bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">Published</Badge>
+                    ) : (
+                      <Badge variant="secondary">Draft</Badge>
+                    )}
+                    <Badge variant="outline" className={accessBadgeClass(t.accessMode)}>
+                      {accessModeLabel(t.accessMode)}
+                    </Badge>
+                    {t.accessCode && (
+                      <Badge variant="outline" className="font-mono text-xs">{t.accessCode}</Badge>
+                    )}
+                  </div>
+                  <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                    {t.description || 'No description'}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <span>{t.questionCount} questions</span>
+                    <span>{t.attemptCount} attempts</span>
+                    {t.timeLimitMinutes && <span>{t.timeLimitMinutes} min</span>}
+                    <span>{formatDate(t.createdAt)}</span>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" onClick={() => copyLink(t.shareableLink)} aria-label="Copy link">
+                        <Copy className="size-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Copy test link</TooltipContent>
+                  </Tooltip>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTogglePublish(t)}
+                  >
+                    {t.isPublished ? 'Unpublish' : 'Publish'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('analytics', { id: t.id })}
+                  >
+                    <BarChart3 className="size-4" />
+                    <span className="hidden sm:inline">Analytics</span>
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={deleting === t.id}>
+                        {deleting === t.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete &ldquo;{t.title}&rdquo;?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This permanently deletes the test, its questions, and all {t.attemptCount} attempt(s).
+                          This cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(t)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---- Analytics overview section --------------------------------------------
+
+function AnalyticsOverviewContent({ navigate }: { navigate: (view?: string, extra?: Record<string, string>) => void }) {
+  const [tests, setTests] = useState<TestItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch('/api/admin/tests', { credentials: 'include' })
+        if (res.status === 401) { navigate('login'); return }
+        const json: TestsResponse = await res.json()
+        if (json.success && json.data) setTests(json.data)
+      } catch {
+        /* ignore */
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  if (loading) return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
+
+  const published = tests.filter((t) => t.isPublished)
+  const totalAttempts = tests.reduce((s, t) => s + t.attemptCount, 0)
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total Tests</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-2xl tabular-nums">
+              {tests.length}<FileText className="size-4 text-muted-foreground" />
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Published</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-2xl tabular-nums">
+              {published.length}<Rocket className="size-4 text-muted-foreground" />
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total Attempts</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-2xl tabular-nums">
+              {totalAttempts}<Users className="size-4 text-muted-foreground" />
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Avg Attempts/Test</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-2xl tabular-nums">
+              {tests.length > 0 ? Math.round(totalAttempts / tests.length) : 0}<TrendingUp className="size-4 text-muted-foreground" />
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Per-test breakdown</CardTitle>
+          <CardDescription>Click any test to see detailed analytics, scores, and difficulty</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {tests.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No tests yet. Create one to see analytics.</p>
+          ) : (
+            tests.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => navigate('analytics', { id: t.id })}
+                className="flex items-center justify-between rounded-lg border p-3 text-left transition hover:bg-accent/50"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-medium">{t.title}</span>
+                    <Badge variant="outline" className={accessBadgeClass(t.accessMode)}>
+                      {accessModeLabel(t.accessMode)}
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {t.questionCount} questions · {t.attemptCount} attempts
+                  </p>
+                </div>
+                <BarChart3 className="size-4 shrink-0 text-muted-foreground" />
+              </button>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+// ---- Settings section ------------------------------------------------------
+
+function SettingsContent() {
+  const [current, setCurrent] = useState('')
+  const [newPass, setNewPass] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (newPass !== confirm) {
+      toast.error('New passwords do not match')
+      return
+    }
+    if (newPass.length < 8) {
+      toast.error('New password must be at least 8 characters')
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/admin/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ currentPassword: current, newPassword: newPass }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        toast.success('Password updated')
+        setCurrent('')
+        setNewPass('')
+        setConfirm('')
+      } else {
+        toast.error(json.message ?? 'Could not update password')
+      }
+    } catch {
+      toast.error('Network error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-md">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <SettingsIcon className="size-4 text-emerald-600" />
+            Change password
+          </CardTitle>
+          <CardDescription>Update your admin account password</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="current" className="text-xs">Current password</Label>
+              <Input
+                id="current"
+                type="password"
+                autoComplete="current-password"
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+                disabled={saving}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new" className="text-xs">New password</Label>
+              <Input
+                id="new"
+                type="password"
+                autoComplete="new-password"
+                value={newPass}
+                onChange={(e) => setNewPass(e.target.value)}
+                disabled={saving}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="confirm" className="text-xs">Confirm new password</Label>
+              <Input
+                id="confirm"
+                type="password"
+                autoComplete="new-password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                disabled={saving}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={saving} className="bg-emerald-600 text-white hover:bg-emerald-700">
+              {saving ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : 'Update password'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

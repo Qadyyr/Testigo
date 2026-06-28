@@ -8,6 +8,71 @@ import type { ParsedQuestion } from '@/lib/question-parser'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * GET /api/admin/tests
+ * Lists ALL tests owned by the signed-in admin (for the Tests management page).
+ *
+ * 200: { success, data: [{ id, title, accessMode, requireCode, isPublished,
+ *          timeLimitMinutes, resultReleaseMode, createdAt, shareableLink,
+ *          accessCode, attemptCount, questionCount }] }
+ * 401: unauthorized
+ */
+export async function GET() {
+  try {
+    const session = await getAdminSession()
+    if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN')) {
+      return fail('Unauthorized', 401)
+    }
+
+    const tests = await db.test.findMany({
+      where: { createdBy: session.user.id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        accessMode: true,
+        requireCode: true,
+        accessCode: true,
+        isPublished: true,
+        timeLimitMinutes: true,
+        resultReleaseMode: true,
+        createdAt: true,
+        shareableLink: true,
+        _count: {
+          select: { attempts: true, questions: true },
+        },
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'ok',
+      data: tests.map((t) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        accessMode: t.accessMode as 'PUBLIC' | 'WHITELIST' | 'INVITE',
+        requireCode: t.requireCode,
+        accessCode: t.accessCode,
+        isPublished: t.isPublished,
+        timeLimitMinutes: t.timeLimitMinutes,
+        resultReleaseMode: t.resultReleaseMode as 'IMMEDIATE' | 'MANUAL' | 'NEVER',
+        createdAt: t.createdAt.toISOString(),
+        shareableLink: t.shareableLink,
+        attemptCount: t._count.attempts,
+        questionCount: t._count.questions,
+      })),
+    })
+  } catch (err) {
+    console.error('[GET /api/admin/tests]', err)
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 const questionSchema = z.object({
   questionText: z.string().min(1),
   type: z.enum(['MCQ', 'TRUE_FALSE', 'SHORT']),
