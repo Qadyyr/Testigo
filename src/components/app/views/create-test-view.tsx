@@ -164,7 +164,7 @@ const INITIAL_SETTINGS: Settings = {
   timeLimitMinutes: '',
   positiveMarks: '1',
   negativeMarks: '0',
-  maxAttempts: '1',
+  maxAttempts: '0',
   resultReleaseMode: 'IMMEDIATE',
 }
 
@@ -370,7 +370,7 @@ export function CreateTestView() {
         accessMode,
         requireCode,
         accessCode: requireCode ? accessCode.trim() || undefined : undefined,
-        maxAttempts: numOr(settings.maxAttempts, 1),
+        maxAttempts: numOr(settings.maxAttempts, 0),
         resultReleaseMode: settings.resultReleaseMode,
         positiveMarks: numOr(settings.positiveMarks, 1),
         negativeMarks: numOr(settings.negativeMarks, 0),
@@ -791,7 +791,7 @@ function Step1Details({
             spellCheck={false}
           />
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               onClick={onRunDryRun}
@@ -810,6 +810,17 @@ function Step1Details({
                 </>
               )}
             </Button>
+            {content.trim() && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => navigator.clipboard.writeText(content).then(() => toast.success('Copied to clipboard'))}
+              >
+                <Copy className="size-3.5" />
+                Copy
+              </Button>
+            )}
             {dryRun.status === 'done' && dryRun.result ? (
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-transparent bg-amber-600 text-white">
@@ -1247,11 +1258,11 @@ function Step2Settings({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="max-attempts">Max attempts</Label>
+            <Label htmlFor="max-attempts">Max attempts <span className="text-muted-foreground font-normal">(0 = unlimited)</span></Label>
             <Input
               id="max-attempts"
               type="number"
-              min={1}
+              min={0}
               value={settings.maxAttempts}
               onChange={(e) => update('maxAttempts', e.target.value)}
             />
@@ -1620,7 +1631,7 @@ function Step4Review({
       label: 'Marking',
       value: `+${settings.positiveMarks} / −${settings.negativeMarks}`,
     },
-    { label: 'Max attempts', value: settings.maxAttempts },
+    { label: 'Max attempts', value: settings.maxAttempts === '0' ? 'Unlimited' : settings.maxAttempts },
     {
       label: 'Results',
       value: settings.resultReleaseMode === 'IMMEDIATE' ? 'Immediate' : 'Manual',

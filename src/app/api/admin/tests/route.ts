@@ -99,7 +99,7 @@ const bodySchema = z.object({
   requireCode: z.boolean().default(false),
   // accessCode is now auto-generated (ignored if sent by client).
   accessCode: z.string().optional(),
-  maxAttempts: z.number().int().min(1).default(1),
+  maxAttempts: z.number().int().min(0).default(0), // 0 = unlimited
   resultReleaseMode: z.enum(['IMMEDIATE', 'MANUAL', 'NEVER']).default('IMMEDIATE'),
   // Test-level marks — applied to ALL questions (not in the import format).
   positiveMarks: z.number().min(0).default(1),

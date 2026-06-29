@@ -170,9 +170,9 @@ export async function POST(
         return ok({ token, attemptId: inProgress.id, expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(), resumed: true })
       }
 
-      // Already submitted the max attempts?
+      // Already submitted the max attempts? (0 = unlimited, skip check)
       const submittedCount = participant.attempts.filter((a) => a.status === 'SUBMITTED' || a.status === 'AUTO_SUBMITTED').length
-      if (submittedCount >= test.maxAttempts) {
+      if (test.maxAttempts > 0 && submittedCount >= test.maxAttempts) {
         return NextResponse.json(
           { success: false, message: 'You have already attempted this test.', code: 'ALREADY_ATTEMPTED' },
           { status: 400 }
