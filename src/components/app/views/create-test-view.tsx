@@ -756,20 +756,29 @@ function Step1Details({
               <Info className="size-3.5 text-amber-600" />
               Accepted format ({format.toUpperCase()})
             </div>
-            {format === 'md' && (
-              <div className="space-y-1">
-                <p>Start each question with <code className="rounded bg-muted px-1">###</code>. Use <code className="rounded bg-muted px-1">- [ ]</code> for wrong options and <code className="rounded bg-muted px-1">- [x]</code> for correct. Add <code className="rounded bg-muted px-1">type: true_false</code> or <code className="rounded bg-muted px-1">type: short</code> + <code className="rounded bg-muted px-1">answer:</code> lines. Use <code className="rounded bg-muted px-1">&gt;</code> for explanation.</p>
-              </div>
-            )}
             {format === 'csv' && (
-              <div className="space-y-1">
-                <p>Header: <code className="rounded bg-muted px-1">questionText,type,options,correctAnswers,explanation</code></p>
-                <p><code className="rounded bg-muted px-1">type</code>: MCQ, TRUE_FALSE, or SHORT · <code className="rounded bg-muted px-1">options</code>: semicolon-separated · <code className="rounded bg-muted px-1">correctAnswers</code>: semicolon-separated indices (MCQ) or pipe-separated strings (SHORT)</p>
+              <div className="space-y-1.5">
+                <p>Header row (required):</p>
+                <pre className="overflow-x-auto rounded bg-muted px-2 py-1.5 text-[11px] leading-relaxed">questionText,type,options,correctAnswers,explanation</pre>
+                <p><code className="rounded bg-muted px-1">type</code>: MCQ, TRUE_FALSE, or SHORT</p>
+                <p><code className="rounded bg-muted px-1">options</code>: semicolon-separated (e.g. <code className="rounded bg-muted px-1">"A;B;C;D"</code>)</p>
+                <p><code className="rounded bg-muted px-1">correctAnswers</code>: index (e.g. <code className="rounded bg-muted px-1">"3"</code>) or pipe-separated for SHORT (e.g. <code className="rounded bg-muted px-1">"Paris|paris"</code>)</p>
               </div>
             )}
             {format === 'json' && (
-              <div className="space-y-1">
-                <p>Array of objects with: <code className="rounded bg-muted px-1">questionText</code>, <code className="rounded bg-muted px-1">type</code> (MCQ/TRUE_FALSE/SHORT), <code className="rounded bg-muted px-1">options</code> (string[]), <code className="rounded bg-muted px-1">correctAnswers</code> (number[] for MCQ, string[] for SHORT), <code className="rounded bg-muted px-1">explanation</code> (optional string).</p>
+              <div className="space-y-1.5">
+                <p>Array of objects:</p>
+                <pre className="overflow-x-auto rounded bg-muted px-2 py-1.5 text-[11px] leading-relaxed">{`{ "questionText": "...", "type": "MCQ", "options": ["A","B","C","D"], "correctAnswers": [3], "explanation": "..." }`}</pre>
+                <p><code className="rounded bg-muted px-1">type</code>: MCQ, TRUE_FALSE, or SHORT</p>
+                <p><code className="rounded bg-muted px-1">correctAnswers</code>: number[] for MCQ (e.g. <code className="rounded bg-muted px-1">[3]</code>), string[] for SHORT (e.g. <code className="rounded bg-muted px-1">["Paris","paris"]</code>)</p>
+              </div>
+            )}
+            {format === 'md' && (
+              <div className="space-y-1.5">
+                <p>Start each question with <code className="rounded bg-muted px-1">###</code></p>
+                <p>Options: <code className="rounded bg-muted px-1">- [ ]</code> wrong, <code className="rounded bg-muted px-1">- [x]</code> correct</p>
+                <p>Types: <code className="rounded bg-muted px-1">type: true_false</code> or <code className="rounded bg-muted px-1">type: short</code> + <code className="rounded bg-muted px-1">answer:</code> lines</p>
+                <p>Explanation: <code className="rounded bg-muted px-1">&gt; your explanation</code></p>
               </div>
             )}
             <p className="mt-1.5 text-muted-foreground/70">Click "Load sample" to see a working example with all question types.</p>
