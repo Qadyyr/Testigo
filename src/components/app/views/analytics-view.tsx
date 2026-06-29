@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import {
+  ArrowRight,
   BarChart3,
   CheckCircle2,
   Clock,
@@ -425,12 +426,16 @@ interface ResultsResponse {
     test: { id: string; title: string }
     questionsTotal: number
     attempts: StudentAttempt[]
+    totalCount?: number
+    hasMore?: boolean
   }
   message?: string
 }
 
 function StudentsTable({ testId }: { testId: string }) {
+  const { navigate } = useViewRouter()
   const [attempts, setAttempts] = useState<StudentAttempt[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -439,7 +444,7 @@ function StudentsTable({ testId }: { testId: string }) {
     async function load() {
       setLoading(true)
       try {
-        const res = await fetch(`/api/admin/tests/${encodeURIComponent(testId)}/results`, {
+        const res = await fetch(`/api/admin/tests/${encodeURIComponent(testId)}/results?limit=3`, {
           credentials: 'include',
         })
         if (cancelled) return
@@ -448,6 +453,7 @@ function StudentsTable({ testId }: { testId: string }) {
         if (cancelled) return
         if (json.success && json.data) {
           setAttempts(json.data.attempts)
+          setTotalCount(json.data.totalCount ?? json.data.attempts.length)
         } else {
           throw new Error(json.message ?? 'Failed to load results')
         }
@@ -507,10 +513,24 @@ function StudentsTable({ testId }: { testId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Student results</CardTitle>
-        <CardDescription>
-          {attempts.length} student{attempts.length === 1 ? '' : 's'} · real-time data
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Student results</CardTitle>
+            <CardDescription>
+              {totalCount} student{totalCount === 1 ? '' : 's'} · showing recent {attempts.length}
+            </CardDescription>
+          </div>
+          {totalCount > 3 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('results', { id: testId })}
+            >
+              View all {totalCount}
+              <ArrowRight className="size-3.5" />
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {/* Desktop table */}

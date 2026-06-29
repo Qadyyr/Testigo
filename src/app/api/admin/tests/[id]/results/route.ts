@@ -39,6 +39,11 @@ export async function GET(
     const { id } = await ctx.params
     const url = new URL(req.url)
     const format = url.searchParams.get('format')
+    // Pagination: ?limit=20&offset=0 (default: all for CSV, 20 for JSON)
+    const limitParam = url.searchParams.get('limit')
+    const offsetParam = url.searchParams.get('offset')
+    const limit = limitParam ? Math.min(parseInt(limitParam, 10) || 20, 200) : undefined
+    const offset = offsetParam ? parseInt(offsetParam, 10) || 0 : 0
 
     const test = await db.test.findUnique({
       where: { id },
@@ -48,20 +53,24 @@ export async function GET(
       return fail('Test not found', 404)
     }
 
-    const [questions, attempts] = await Promise.all([
+    const whereClause = { testId: id, status: { in: ['SUBMITTED', 'AUTO_SUBMITTED'] } }
+
+    const [questions, attempts, totalCount] = await Promise.all([
       db.question.findMany({
         where: { testId: id },
         orderBy: { order: 'asc' },
         select: { id: true, questionText: true, order: true },
       }),
       db.attempt.findMany({
-        where: { testId: id, status: { in: ['SUBMITTED', 'AUTO_SUBMITTED'] } },
+        where: whereClause,
         include: {
           participant: { select: { identifier: true, name: true } },
           responses: { select: { questionId: true, isCorrect: true, marksAwarded: true, userAnswer: true } },
         },
         orderBy: { startTime: 'desc' },
+        ...(limit !== undefined ? { take: limit, skip: offset } : {}),
       }),
+      db.attempt.count({ where: whereClause }),
     ])
 
     const questionsTotal = questions.length
@@ -154,6 +163,8 @@ export async function GET(
         test: { id: test.id, title: test.title },
         questionsTotal,
         attempts: enriched,
+        totalCount,
+        ...(limit !== undefined ? { limit, offset, hasMore: offset + enriched.length < totalCount } : {}),
       },
     })
   } catch (err) {

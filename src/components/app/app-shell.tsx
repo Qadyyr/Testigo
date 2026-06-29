@@ -11,6 +11,7 @@ import { AdminDashboardView } from './views/admin-dashboard-view'
 import { CreateTestView } from './views/create-test-view'
 import { AnalyticsView } from './views/analytics-view'
 import { GradingView } from './views/grading-view'
+import { ResultsView } from './views/results-view'
 import { ParticipantTestView } from './views/participant-test-view'
 
 function ViewSwitch() {
@@ -36,6 +37,9 @@ function ViewSwitch() {
       break
     case 'grading':
       content = <GradingView />
+      break
+    case 'results':
+      content = <ResultsView />
       break
     case 'test':
       content = <ParticipantTestView />
