@@ -50,7 +50,7 @@ async function main() {
   const tests = [
     {
       link: 'demo123',
-      code: 'GK2024',
+      code: 'GK4MP7',
       requireCode: true,
       accessMode: 'WHITELIST',
       title: 'Sample General Knowledge Quiz',
@@ -60,7 +60,7 @@ async function main() {
     },
     {
       link: 'demo456',
-      code: 'APT2024',
+      code: 'AP3K9X',
       requireCode: true,
       accessMode: 'WHITELIST',
       title: 'Sample Aptitude Assessment',
@@ -70,7 +70,7 @@ async function main() {
     },
     {
       link: 'pubdemo',
-      code: 'PUB2024',
+      code: 'PU8B2N',
       requireCode: false,
       accessMode: 'PUBLIC',
       title: 'Public Practice Quiz',
@@ -142,10 +142,10 @@ async function main() {
   console.log('✅ Seed complete.')
   console.log('   Admin:        ', email, '/', password)
   console.log('   Tests:')
-  console.log('     demo123  (WHITELIST, code GK2024)  — student', studentPhone)
-  console.log('     demo456  (WHITELIST, code APT2024) — student', studentPhone)
-  console.log('     pubdemo  (PUBLIC, code PUB2024)     — anyone, 2 MCQs for auto-grade')
-  console.log('   Home page: enter GK2024 / APT2024 / PUB2024 to open a test')
+  console.log('     demo123  (WHITELIST, code GK4MP7)  — student', studentPhone)
+  console.log('     demo456  (WHITELIST, code AP3K9X)  — student', studentPhone)
+  console.log('     pubdemo  (PUBLIC, code PU8B2N)      — anyone, 2 MCQs for auto-grade')
+  console.log('   Home page: enter GK4MP7 / AP3K9X / PU8B2N to open a test')
   console.log('   Direct links: /?t=demo123  /?t=demo456  /?t=pubdemo')
 }
 

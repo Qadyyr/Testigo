@@ -106,6 +106,7 @@ interface Settings {
 interface CreatedTest {
   id?: string
   shareableLink: string
+  accessCode?: string
   questionCount: number
   isPublished: boolean
   inviteLinks?: string[]
@@ -1426,29 +1427,16 @@ function Step3Access({
         </CardContent>
       </Card>
 
-      {/* Test code — required, students use it to open the test */}
+      {/* Test code — auto-generated, shown as info */}
       <Card>
         <CardHeader>
           <CardTitle>Test code</CardTitle>
           <CardDescription>
-            Students enter this code on the home page to open your test. Make
-            it short and memorable.
+            A unique 6-character code is generated automatically when you create
+            the test. Students use it on the home page to open your test.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="access-code" className="text-xs font-medium">
-              Test code <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="access-code"
-              value={accessCode}
-              onChange={(e) => setAccessCode(e.target.value)}
-              placeholder="e.g. GK2024"
-              className="font-mono uppercase"
-            />
-          </div>
-
+        <CardContent>
           <Label
             htmlFor="require-code"
             className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition hover:bg-accent"
@@ -1554,7 +1542,7 @@ function Step4Review({
           return 'Anyone with the link or code'
       }
     })()
-    const codePart = accessCode ? ` · code: ${accessCode}` : ' · no code set'
+    const codePart = ' · code: auto-generated on creation'
     const gatePart = requireCode ? ' · code required at gate' : ''
     return `${base}${codePart}${gatePart}`
   })()
@@ -1738,11 +1726,41 @@ function SuccessScreen({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="size-4 text-amber-600" />
-            Shareable link
+            <CheckCircle2 className="size-4 text-amber-600" />
+            Test code
           </CardTitle>
           <CardDescription>
-            Send this link to participants.{' '}
+            Students enter this code on the home page to open your test.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
+            <div className="flex-1 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 px-6 py-4 text-center dark:bg-amber-950/30">
+              <span className="font-mono text-3xl font-bold tracking-[0.3em] text-amber-700 dark:text-amber-300">
+                {created.accessCode ?? '—'}
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onCopy(created.accessCode ?? '', 'Code copied')}
+              className="shrink-0"
+            >
+              <Copy className="size-4" />
+              Copy
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LinkIcon className="size-4 text-amber-600" />
+            Direct link
+          </CardTitle>
+          <CardDescription>
+            You can also share this link directly.{' '}
             {created.isPublished
               ? 'The test is live.'
               : 'Publish it from the dashboard when ready.'}

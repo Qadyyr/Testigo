@@ -69,24 +69,11 @@ function ThemeToggle() {
 }
 
 /**
- * Accepts either a raw test code (e.g. "GK2024") or a full test URL
- * (e.g. "https://testigo.vercel.app/?t=abc123") and returns the token
- * to navigate to, plus whether it was a direct link.
+ * Validates a test code (6 uppercase alphanumeric chars).
+ * Direct links via /?t=<token> bypass this entirely (handled by the router).
  */
-function parseInput(raw: string): { link?: string; code?: string } {
-  const trimmed = raw.trim()
-  if (!trimmed) return {}
-  // If it looks like a URL, try to extract the `t` param.
-  if (trimmed.includes('://') || trimmed.startsWith('?t=')) {
-    try {
-      const url = new URL(trimmed.startsWith('?') ? `http://x${trimmed}` : trimmed)
-      const t = url.searchParams.get('t')
-      if (t) return { link: t }
-    } catch {
-      // not a valid URL — treat as a code
-    }
-  }
-  return { code: trimmed }
+function isCode(raw: string): boolean {
+  return /^[A-Z0-9]{6}$/.test(raw.trim().toUpperCase())
 }
 
 // ---- terminal accent (decorative, tech feel) ------------------------------
@@ -155,19 +142,13 @@ export function HomeView() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const { link, code } = parseInput(input)
-    if (!link && !code) {
-      toast.error('Enter a test code or paste your test link.')
+    const code = input.trim().toUpperCase()
+    if (!code) {
+      toast.error('Enter your test code.')
       return
     }
 
-    // Direct link — go straight to the test.
-    if (link) {
-      navigate(undefined, { t: link })
-      return
-    }
-
-    // Code — resolve via the API.
+    // Resolve the code via the API.
     setLoading(true)
     setNotFound(false)
     try {
@@ -183,7 +164,7 @@ export function HomeView() {
       }
       // Remember the code so the participant gate can skip re-entering it.
       try {
-        sessionStorage.setItem('testigo:code', code!)
+        sessionStorage.setItem('testigo:code', code)
       } catch {
         /* non-fatal */
       }
@@ -251,8 +232,7 @@ export function HomeView() {
             {...fade(0.08)}
             className="max-w-md text-base text-muted-foreground text-pretty sm:text-lg"
           >
-            Enter the code your administrator gave you, or paste your test link
-            to get started.
+            Enter the code your administrator gave you to start your test.
           </motion.p>
 
           {/* Entry card */}
@@ -263,26 +243,26 @@ export function HomeView() {
                 <CardDescription>
                   {notFound
                     ? 'No test found for that code. Check it and try again.'
-                    : 'Enter your test code (e.g. GK2024) or paste the test link.'}
+                    : 'Enter the 6-character code your administrator gave you.'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="test-input" className="text-xs">
-                      Test code or link
+                      Test code
                     </Label>
                     <Input
                       id="test-input"
                       type="text"
                       autoComplete="off"
-                      placeholder="GK2024  ·  or paste link"
+                      placeholder="e.g. K4MP7X"
                       value={input}
                       onChange={(e) => {
-                        setInput(e.target.value)
+                        setInput(e.target.value.toUpperCase())
                         setNotFound(false)
                       }}
-                      className="font-mono"
+                      className="font-mono uppercase text-center text-lg tracking-widest"
                     />
                   </div>
                   <Button

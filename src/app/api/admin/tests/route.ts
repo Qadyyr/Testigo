@@ -97,7 +97,8 @@ const bodySchema = z.object({
   timeLimitMinutes: z.number().int().positive().optional().nullable(),
   accessMode: z.enum(['PUBLIC', 'WHITELIST', 'INVITE']),
   requireCode: z.boolean().default(false),
-  accessCode: z.string().min(1, 'Test code is required').max(100),
+  // accessCode is now auto-generated (ignored if sent by client).
+  accessCode: z.string().optional(),
   maxAttempts: z.number().int().min(1).default(1),
   resultReleaseMode: z.enum(['IMMEDIATE', 'MANUAL', 'NEVER']).default('IMMEDIATE'),
   // Test-level marks — applied to ALL questions (not in the import format).
@@ -110,6 +111,23 @@ const bodySchema = z.object({
   // Number of single-use invitation links to generate for INVITE mode.
   inviteCount: z.number().int().min(1).max(500).optional(),
 })
+
+// Charset for the human-friendly test code (no ambiguous chars: 0/O, 1/I/L).
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+
+/** Generate a unique 6-char test code, retrying on collision (extremely rare). */
+async function generateUniqueCode(): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    let code = ''
+    for (let i = 0; i < 6; i++) {
+      code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
+    }
+    const existing = await db.test.findFirst({ where: { accessCode: code }, select: { id: true } })
+    if (!existing) return code
+  }
+  // Fallback (should never happen): append a random suffix.
+  return 'T' + nanoid(5).toUpperCase()
+}
 
 /**
  * POST /api/admin/tests
@@ -138,11 +156,9 @@ export async function POST(req: Request) {
     }
     const b = parsed.data
 
-    // accessCode is required — it's the join code students use on the home page.
-    // requireCode controls whether it's ALSO enforced as a password at the gate.
-    if (!b.accessCode) {
-      return fail('A test code is required (students use it to open the test)', 400)
-    }
+    // Auto-generate a unique test code (students use it on the home page).
+    const accessCode = await generateUniqueCode()
+
     if (b.accessMode === 'WHITELIST' && (!b.whitelist || b.whitelist.length === 0)) {
       return fail('At least one phone number is required for WHITELIST mode', 400)
     }
@@ -165,7 +181,7 @@ export async function POST(req: Request) {
         timeLimitMinutes: b.timeLimitMinutes ?? null,
         accessMode: b.accessMode,
         requireCode: b.requireCode,
-        accessCode: b.accessCode,
+        accessCode,
         maxAttempts: b.maxAttempts,
         resultReleaseMode: b.resultReleaseMode,
         positiveMarks: b.positiveMarks,
@@ -222,6 +238,7 @@ export async function POST(req: Request) {
         data: {
           id: test.id,
           shareableLink: test.shareableLink,
+          accessCode,
           questionCount: test._count.questions,
           isPublished: test.isPublished,
           inviteLinks,
