@@ -1035,108 +1035,80 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
           {questions.length === 1 ? '' : 's'}
         </CardTitle>
         <CardDescription>
-          Review your questions below. Correct answers are highlighted. This is
-          exactly what students will see (without the correct-answer highlight).
+          Correct answers are highlighted in amber.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="space-y-4">
-          {questions.map((q, i) => {
-            const correctIdx = Array.isArray(q.correctAnswers)
-              ? (q.correctAnswers as number[])
-              : []
-            const acceptable = Array.isArray(q.correctAnswers)
-              ? (q.correctAnswers as string[])
-              : []
-            return (
-              <div key={i} className="rounded-lg border bg-card p-4 sm:p-5">
-                <div className="mb-4 flex items-start gap-3">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className={typeBadgeClass(q.type)}
-                      >
-                        {typeLabel(q.type)}
-                      </Badge>
-                    </div>
-                    <p className="text-base font-semibold leading-relaxed">
-                      {q.questionText}
-                    </p>
-                  </div>
+      <CardContent className="flex flex-col gap-0">
+        {questions.map((q, i) => {
+          const correctIdx = Array.isArray(q.correctAnswers)
+            ? (q.correctAnswers as number[])
+            : []
+          const acceptable = Array.isArray(q.correctAnswers)
+            ? (q.correctAnswers as string[])
+            : []
+          return (
+            <div key={i} className={i > 0 ? 'border-t pt-6' : ''}>
+              <div className="mb-4 flex items-start gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <Badge variant="outline" className={`mb-2 ${typeBadgeClass(q.type)}`}>
+                    {typeLabel(q.type)}
+                  </Badge>
+                  <p className="text-base font-semibold leading-relaxed">
+                    {q.questionText}
+                  </p>
                 </div>
-
-                {/* Options for MCQ / TRUE_FALSE */}
-                {(q.type === 'MCQ' || q.type === 'TRUE_FALSE') && (
-                  <div className="flex flex-col gap-2 sm:pl-11">
-                    {q.options.map((opt, oi) => {
-                      const isCorrect = correctIdx.includes(oi)
-                      return (
-                        <div
-                          key={oi}
-                          className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-base ${
-                            isCorrect
-                              ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
-                              : 'border-border'
-                          }`}
-                        >
-                          {isCorrect ? (
-                            <CheckCircle2 className="size-5 shrink-0 text-amber-600" />
-                          ) : (
-                            <span className="size-5 shrink-0 rounded-full border-2 border-border" />
-                          )}
-                          <span
-                            className={`min-w-0 flex-1 ${
-                              isCorrect
-                                ? 'font-medium text-amber-800 dark:text-amber-200'
-                                : ''
-                            }`}
-                          >
-                            {opt}
-                          </span>
-                          {isCorrect && (
-                            <span className="shrink-0 text-xs text-amber-600">
-                              correct
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Acceptable answers for SHORT */}
-                {q.type === 'SHORT' && (
-                  <div className="flex flex-col gap-2 sm:pl-11">
-                    <div className="rounded-xl border border-amber-500/40 bg-amber-50 p-3 text-base dark:bg-amber-950/30">
-                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                        Acceptable answers
-                      </span>
-                      <p className="mt-1 break-words text-amber-800 dark:text-amber-200">
-                        {acceptable.join(', ')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Explanation */}
-                {q.explanation && (
-                  <div className="mt-3 rounded-xl border border-border bg-muted/20 p-3 text-base sm:ml-11">
-                    <span className="block text-xs font-medium text-muted-foreground">
-                      Explanation
-                    </span>
-                    <p className="mt-1 break-words text-muted-foreground">
-                      {q.explanation}
-                    </p>
-                  </div>
-                )}
               </div>
-            )
-          })}
-        </div>
+
+              {/* Options — flat, no nested borders */}
+              {(q.type === 'MCQ' || q.type === 'TRUE_FALSE') && (
+                <div className="flex flex-col gap-1.5 sm:pl-11">
+                  {q.options.map((opt, oi) => {
+                    const isCorrect = correctIdx.includes(oi)
+                    return (
+                      <div
+                        key={oi}
+                        className={`flex items-center gap-3 py-2 text-base ${
+                          isCorrect ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground'
+                        }`}
+                      >
+                        {isCorrect ? (
+                          <CheckCircle2 className="size-5 shrink-0 text-amber-600" />
+                        ) : (
+                          <span className="size-5 shrink-0 rounded-full border-2 border-border" />
+                        )}
+                        <span className={isCorrect ? 'font-medium' : ''}>
+                          {opt}
+                        </span>
+                        {isCorrect && (
+                          <span className="ml-auto text-xs text-amber-600">correct</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* SHORT answers — flat */}
+              {q.type === 'SHORT' && (
+                <div className="sm:pl-11">
+                  <p className="text-sm text-muted-foreground">
+                    Acceptable: <span className="text-amber-700 dark:text-amber-300 font-medium">{acceptable.join(', ')}</span>
+                  </p>
+                </div>
+              )}
+
+              {/* Explanation — flat */}
+              {q.explanation && (
+                <p className="mt-3 text-sm text-muted-foreground sm:pl-11">
+                  <span className="font-medium">Explanation:</span> {q.explanation}
+                </p>
+              )}
+            </div>
+          )
+        })}
       </CardContent>
     </Card>
   )
