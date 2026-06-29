@@ -34,6 +34,7 @@ export async function GET(
         maxAttempts: true,
         resultReleaseMode: true,
         isPublished: true,
+        questions: { select: { type: true } },
       },
     })
 
@@ -43,6 +44,12 @@ export async function GET(
         { status: 404 }
       )
     }
+
+    // Count questions by type.
+    const questionCount = test.questions.length
+    const mcqCount = test.questions.filter((q) => q.type === 'MCQ').length
+    const trueFalseCount = test.questions.filter((q) => q.type === 'TRUE_FALSE').length
+    const shortCount = test.questions.filter((q) => q.type === 'SHORT').length
 
     // Backend-computed schedule flags — never trust client clocks.
     const now = Date.now()
@@ -70,6 +77,12 @@ export async function GET(
         isPublished: test.isPublished,
         scheduledOpen,
         scheduledClosed,
+        questionCount,
+        questionBreakdown: {
+          mcq: mcqCount,
+          trueFalse: trueFalseCount,
+          short: shortCount,
+        },
       },
     })
   } catch (err) {

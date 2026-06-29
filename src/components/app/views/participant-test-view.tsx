@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  FileText,
   Flag,
   Grid,
   Loader2,
@@ -80,6 +81,8 @@ interface ParticipantTest {
   isPublished: boolean
   scheduledOpen: boolean
   scheduledClosed: boolean
+  questionCount?: number
+  questionBreakdown?: { mcq: number; trueFalse: number; short: number }
 }
 interface StartResponse {
   token: string
@@ -439,9 +442,21 @@ function Landing({ test, onStart }: { test: ParticipantTest; onStart: () => void
     test.requireCode ? 'An access code is required to start.' : 'No access code needed.',
   ]
 
+  const breakdown = test.questionBreakdown
+  const breakdownParts: string[] = []
+  if (breakdown) {
+    if (breakdown.mcq > 0) breakdownParts.push(`${breakdown.mcq} MCQ`)
+    if (breakdown.trueFalse > 0) breakdownParts.push(`${breakdown.trueFalse} True/False`)
+    if (breakdown.short > 0) breakdownParts.push(`${breakdown.short} Short answer`)
+  }
+  const questionDetail = test.questionCount != null
+    ? `${test.questionCount} question${test.questionCount === 1 ? '' : 's'}${breakdownParts.length > 0 ? ` (${breakdownParts.join(', ')})` : ''}`
+    : null
+
   const details = [
     { icon: CalendarClock, label: 'Schedule', value: `${scheduleText} ${tzLabel}` },
     { icon: Timer, label: 'Time Limit', value: test.timeLimitMinutes ? `${test.timeLimitMinutes} minutes` : 'No limit' },
+    ...(questionDetail ? [{ icon: FileText, label: 'Questions', value: questionDetail }] : []),
     { icon: Users, label: 'Max Attempts', value: test.maxAttempts > 0 ? `${test.maxAttempts} per participant` : 'Unlimited' },
   ]
 
