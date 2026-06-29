@@ -356,7 +356,7 @@ export function ParticipantTestView() {
 
 function Header({ onHome }: { onHome: () => void }) {
   return (
-    <header className="border-b bg-background">
+    <header className="sticky top-0 z-30 border-b bg-background">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
         <button
           type="button"
