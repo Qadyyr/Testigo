@@ -18,8 +18,10 @@ import {
   Check,
   CheckCircle2,
   Copy,
+  Eraser,
   FileText,
   Globe,
+  Info,
   Link as LinkIcon,
   Loader2,
   Lock,
@@ -229,6 +231,12 @@ export function CreateTestView() {
     setDryRun({ status: 'idle' })
     setImported(null)
   }, [format])
+
+  const clearContent = useCallback(() => {
+    setContent('')
+    setDryRun({ status: 'idle' })
+    setImported(null)
+  }, [])
 
   const onFormatChange = useCallback((next: ParseFormat) => {
     setFormat(next)
@@ -468,6 +476,7 @@ export function CreateTestView() {
             content={content}
             onContentChange={onContentChange}
             onLoadSample={loadSample}
+            onClear={clearContent}
             dryRun={dryRun}
             onRunDryRun={runDryRun}
             imported={imported}
@@ -596,6 +605,7 @@ function Step1Details({
   content,
   onContentChange,
   onLoadSample,
+  onClear,
   dryRun,
   onRunDryRun,
   imported,
@@ -614,6 +624,7 @@ function Step1Details({
   content: string
   onContentChange: (v: string) => void
   onLoadSample: () => void
+  onClear: () => void
   dryRun: DryRunState
   onRunDryRun: () => void
   imported: ParsedQuestion[] | null
@@ -725,6 +736,43 @@ function Step1Details({
               <Upload className="size-3.5" />
               Load sample
             </Button>
+            {content.trim() && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onClear}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Eraser className="size-3.5" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {/* Format guide */}
+          <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+            <div className="mb-1.5 flex items-center gap-1.5 font-medium text-foreground">
+              <Info className="size-3.5 text-amber-600" />
+              Accepted format ({format.toUpperCase()})
+            </div>
+            {format === 'md' && (
+              <div className="space-y-1">
+                <p>Start each question with <code className="rounded bg-muted px-1">###</code>. Use <code className="rounded bg-muted px-1">- [ ]</code> for wrong options and <code className="rounded bg-muted px-1">- [x]</code> for correct. Add <code className="rounded bg-muted px-1">type: true_false</code> or <code className="rounded bg-muted px-1">type: short</code> + <code className="rounded bg-muted px-1">answer:</code> lines. Use <code className="rounded bg-muted px-1">&gt;</code> for explanation.</p>
+              </div>
+            )}
+            {format === 'csv' && (
+              <div className="space-y-1">
+                <p>Header: <code className="rounded bg-muted px-1">questionText,type,options,correctAnswers,explanation</code></p>
+                <p><code className="rounded bg-muted px-1">type</code>: MCQ, TRUE_FALSE, or SHORT · <code className="rounded bg-muted px-1">options</code>: semicolon-separated · <code className="rounded bg-muted px-1">correctAnswers</code>: semicolon-separated indices (MCQ) or pipe-separated strings (SHORT)</p>
+              </div>
+            )}
+            {format === 'json' && (
+              <div className="space-y-1">
+                <p>Array of objects with: <code className="rounded bg-muted px-1">questionText</code>, <code className="rounded bg-muted px-1">type</code> (MCQ/TRUE_FALSE/SHORT), <code className="rounded bg-muted px-1">options</code> (string[]), <code className="rounded bg-muted px-1">correctAnswers</code> (number[] for MCQ, string[] for SHORT), <code className="rounded bg-muted px-1">explanation</code> (optional string).</p>
+              </div>
+            )}
+            <p className="mt-1.5 text-muted-foreground/70">Click "Load sample" to see a working example with all question types.</p>
           </div>
 
           {/* Content textarea */}
