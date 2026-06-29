@@ -8,9 +8,10 @@ export const dynamic = 'force-dynamic'
 
 const bodySchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(200).optional(),
-  identifier: z.string().optional(), // phone for WHITELIST; optional for PUBLIC
-  accessCode: z.string().optional(), // required only if test.requireCode
-  inviteToken: z.string().optional(), // required only for INVITE mode
+  identifier: z.string().optional(),
+  accessCode: z.string().optional(),
+  inviteToken: z.string().optional(),
+  forceNew: z.boolean().default(false), // true = start a new attempt (retake)
 })
 
 /**
@@ -40,7 +41,7 @@ export async function POST(
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? 'Invalid input', 400)
     }
-    const { name, identifier, accessCode, inviteToken } = parsed.data
+    const { name, identifier, accessCode, inviteToken, forceNew } = parsed.data
 
     // 1. Valid + published?
     const test = await db.test.findUnique({
@@ -168,15 +169,15 @@ export async function POST(
         return ok({ token, attemptId: inProgress.id, expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(), resumed: true })
       }
 
-      // Already submitted the max attempts? (0 = unlimited, skip check)
-      const submittedCount = participant.attempts.filter((a) => a.status === 'SUBMITTED' || a.status === 'AUTO_SUBMITTED').length
-      if (test.maxAttempts > 0 && submittedCount >= test.maxAttempts) {
-        // Return the existing result so the student can see their score / status.
-        const lastAttempt = participant.attempts
-          .filter((a) => a.status === 'SUBMITTED' || a.status === 'AUTO_SUBMITTED')
+      // Check for existing submitted attempts.
+      const submittedAttempts = participant.attempts.filter((a) => a.status === 'SUBMITTED' || a.status === 'AUTO_SUBMITTED')
+      const submittedCount = submittedAttempts.length
+
+      if (submittedCount > 0 && !forceNew) {
+        // Student has already taken this test. Return their result.
+        const lastAttempt = submittedAttempts
           .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())[0]
 
-        // Fetch the full attempt with score + response data.
         const fullAttempt = lastAttempt
           ? await db.attempt.findUnique({
               where: { id: lastAttempt.id },
@@ -191,12 +192,14 @@ export async function POST(
             })
           : null
 
-        // Check if there are pending SHORT responses (manual grading).
         const pendingCount = fullAttempt
           ? fullAttempt.responses.filter((r) => r.marksAwarded === null).length
           : 0
 
         const showResults = test.resultReleaseMode === 'IMMEDIATE' && pendingCount === 0
+
+        // Can the student retake? (0 = unlimited, or hasn't used all attempts)
+        const canRetake = test.maxAttempts === 0 || submittedCount < test.maxAttempts
 
         return NextResponse.json({
           success: false,
@@ -210,6 +213,7 @@ export async function POST(
             pendingGrading: pendingCount,
             showResults,
             resultMode: test.resultReleaseMode,
+            canRetake,
           } : null,
         }, { status: 400 })
       }

@@ -147,6 +147,7 @@ interface AlreadyAttemptedResult {
   pendingGrading: number
   showResults: boolean
   resultMode: 'IMMEDIATE' | 'MANUAL' | 'NEVER'
+  canRetake?: boolean
 }
 interface ApiEnvelope<T> {
   success: boolean
@@ -215,6 +216,7 @@ export function ParticipantTestView() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
   const [result, setResult] = useState<ResultData | null>(null)
+  const [forceNew, setForceNew] = useState(false)
 
   // Session token (ref to avoid re-render churn; mirrored to sessionStorage).
   const sessionRef = useRef<string | null>(null)
@@ -270,14 +272,15 @@ export function ParticipantTestView() {
       const r = data as AlreadyAttemptedResult
       setResult({
         score: r.score,
-        total: 0, // total not available in already-attempted summary
+        total: 0,
         correct: null,
         pending: r.pendingGrading,
         resultMode: r.resultMode,
         showResults: r.showResults,
         autoSubmitted: r.status === 'AUTO_SUBMITTED',
         alreadySubmitted: true,
-      })
+        canRetake: r.canRetake ?? false,
+      } as ResultData & { canRetake?: boolean })
     } else {
       setResult(data as ResultData | null)
     }
@@ -306,10 +309,14 @@ export function ParticipantTestView() {
             test={test}
             inviteToken={inviteToken}
             sessionRef={sessionRef}
-            onStarted={() => setPhase('taking')}
+            onStarted={() => {
+              setForceNew(false)
+              setPhase('taking')
+            }}
             onBack={() => setPhase('landing')}
             onAlreadyAttempted={handleStartResult}
             sessionToken={token}
+            forceNew={forceNew}
           />
         )}
         {phase === 'taking' && test && (
@@ -326,7 +333,18 @@ export function ParticipantTestView() {
           />
         )}
         {phase === 'result' && (
-          <Result result={result} onHome={() => navigate('home')} />
+          <Result
+            result={result}
+            onHome={() => navigate('home')}
+            onRetake={() => {
+              sessionStorage.removeItem('testigo:session')
+              sessionStorage.removeItem('testigo:attemptId')
+              sessionRef.current = null
+              setResult(null)
+              setForceNew(true)
+              setPhase('landing')
+            }}
+          />
         )}
       </main>
       {phase !== 'taking' && <SiteFooter />}
@@ -566,6 +584,7 @@ function Gating({
   onBack,
   onAlreadyAttempted,
   sessionToken,
+  forceNew,
 }: {
   test: ParticipantTest
   inviteToken: string
@@ -574,6 +593,7 @@ function Gating({
   onBack: () => void
   onAlreadyAttempted: (data: ResultData | AlreadyAttemptedResult | null) => void
   sessionToken: string
+  forceNew?: boolean
 }) {
   const [name, setName] = useState('')
   const [identifier, setIdentifier] = useState('')
@@ -595,7 +615,7 @@ function Gating({
       setError('Enter your name to continue.')
       return
     }
-    const body: Record<string, string> = { name: name.trim() }
+    const body: Record<string, unknown> = { name: name.trim() }
     // Phone is required — used with name to uniquely identify the student
     // for re-access (multiple students can share the same name).
     if (!identifier.trim()) {
@@ -619,6 +639,9 @@ function Gating({
         return
       }
       body.accessCode = code.trim()
+    }
+    if (forceNew) {
+      body.forceNew = true
     }
 
     setStarting(true)
@@ -1371,7 +1394,7 @@ function MCQInput({
 
 // ---- phase: result ---------------------------------------------------------
 
-function Result({ result, onHome }: { result: ResultData | null; onHome: () => void }) {
+function Result({ result, onHome, onRetake }: { result: ResultData | null; onHome: () => void; onRetake?: () => void }) {
   const reduceMotion = useReducedMotion()
 
   if (!result) {
@@ -1455,8 +1478,14 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
             </p>
           )}
         </CardHeader>
-        <CardContent className="flex justify-center">
+        <CardContent className="flex flex-wrap justify-center gap-3">
           <Button onClick={onHome}><ArrowLeft className="size-4" /> Back to home</Button>
+          {isRevisit && (result as ResultData & { canRetake?: boolean }).canRetake && onRetake && (
+            <Button variant="outline" onClick={onRetake}>
+              <Play className="size-4" />
+              Start new attempt
+            </Button>
+          )}
         </CardContent>
       </Card>
 
