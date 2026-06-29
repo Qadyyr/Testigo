@@ -596,11 +596,15 @@ function Gating({
       return
     }
     const body: Record<string, string> = { name: name.trim() }
+    // Phone is required — used with name to uniquely identify the student
+    // for re-access (multiple students can share the same name).
+    if (!identifier.trim()) {
+      setError('Enter your phone number.')
+      return
+    }
+    body.identifier = identifier.trim()
     if (test.accessMode === 'WHITELIST') {
-      // Phone is optional — only sent if provided.
-      if (identifier.trim()) {
-        body.identifier = identifier.trim()
-      }
+      // Phone checked against whitelist.
     } else if (test.accessMode === 'INVITE') {
       if (!invite.trim()) {
         setError('Enter your invitation code.')
@@ -689,22 +693,23 @@ function Gating({
                 disabled={starting}
               />
             </div>
-            {test.accessMode === 'WHITELIST' && (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="identifier" className="text-xs">
-                  Phone number <span className="text-muted-foreground font-normal">(optional)</span>
-                </Label>
-                <Input
-                  id="identifier"
-                  type="tel"
-                  autoComplete="tel"
-                  placeholder="+92 300 1234567"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  disabled={starting}
-                />
-              </div>
-            )}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="identifier" className="text-xs">
+                Phone number <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="identifier"
+                type="tel"
+                autoComplete="tel"
+                placeholder="+92 300 1234567"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                disabled={starting}
+              />
+              <p className="text-xs text-muted-foreground">
+                Used with your name to identify you. Enter the same number to re-access your results.
+              </p>
+            </div>
             {test.accessMode === 'INVITE' && (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="invite" className="text-xs">Invitation code</Label>
