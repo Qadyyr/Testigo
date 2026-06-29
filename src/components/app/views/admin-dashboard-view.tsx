@@ -18,6 +18,7 @@ import {
   Moon,
   Plus,
   Rocket,
+  RefreshCw,
   Search,
   Settings as SettingsIcon,
   Sun,
@@ -1479,46 +1480,87 @@ function AdminsContent() {
 
 // ---- Database usage (Super Admin only) -------------------------------------
 
+interface AdminUsage {
+  adminId: string
+  name: string
+  email: string
+  role: string
+  status: string
+  testCount: number
+  questionCount: number
+  attemptCount: number
+  participantCount: number
+}
 interface DbUsage {
   usedBytes: number
   limitBytes: number
   percentage: number
   usedMB: number
   limitMB: number
+  counts: { admins: number; tests: number; questions: number; attempts: number; responses: number; participants: number }
+  perAdmin: AdminUsage[]
 }
 interface DbUsageResponse { success: boolean; data?: DbUsage; message?: string }
 
 function DatabaseContent() {
   const [usage, setUsage] = useState<DbUsage | null>(null)
   const [loading, setLoading] = useState(true)
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
   async function load() {
-    setLoading(true)
     try {
       const res = await fetch('/api/admin/database-usage', { credentials: 'include' })
       const json: DbUsageResponse = await res.json()
-      if (json.success && json.data) setUsage(json.data)
+      if (json.success && json.data) {
+        setUsage(json.data)
+        setLastRefresh(new Date())
+      }
     } catch {
       /* ignore */
     } finally {
       setLoading(false)
     }
   }
+
+  // Initial load.
   useEffect(() => { load() }, [])
+
+  // Auto-refresh every 15 seconds.
+  useEffect(() => {
+    const interval = setInterval(load, 15_000)
+    return () => clearInterval(interval)
+  }, [])
 
   if (loading || !usage) return <div className="flex flex-col gap-3">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
 
   const color = usage.percentage < 70 ? 'bg-amber-500' : usage.percentage < 90 ? 'bg-amber-500' : 'bg-destructive'
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className="mx-auto w-full max-w-3xl">
+      {/* Storage usage */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <DatabaseIcon className="size-4 text-amber-600" />
-            Database usage
-          </CardTitle>
-          <CardDescription>Real-time PostgreSQL storage on Neon (free tier)</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <DatabaseIcon className="size-4 text-amber-600" />
+                Database usage
+              </CardTitle>
+              <CardDescription>Real-time PostgreSQL storage on Neon (free tier)</CardDescription>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {lastRefresh && (
+                <span className="flex items-center gap-1">
+                  <span className="size-1.5 animate-pulse rounded-full bg-amber-500" />
+                  Updated {lastRefresh.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
+              )}
+              <Button variant="ghost" size="sm" onClick={load} className="h-7 px-2 text-xs">
+                <RefreshCw className="size-3" />
+                Refresh
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-end justify-between">
@@ -1531,13 +1573,107 @@ function DatabaseContent() {
             </div>
           </div>
           <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-            <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${Math.min(usage.percentage, 100)}%` }} />
+            <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${Math.min(usage.percentage, 100)}%` }} />
           </div>
-          <p className="text-xs text-muted-foreground">
-            Neon free tier includes 512 MB of storage. The database auto-pauses when idle
-            (resumes in ~1s on first request). Data includes tests, questions, attempts,
-            responses, and all admin/participant records.
-          </p>
+        </CardContent>
+      </Card>
+
+      {/* Global counts */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="text-base">Record counts</CardTitle>
+          <CardDescription>Total records across all admins</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            {[
+              { label: 'Admins', value: usage.counts.admins },
+              { label: 'Tests', value: usage.counts.tests },
+              { label: 'Questions', value: usage.counts.questions },
+              { label: 'Attempts', value: usage.counts.attempts },
+              { label: 'Responses', value: usage.counts.responses },
+              { label: 'Participants', value: usage.counts.participants },
+            ].map((item) => (
+              <div key={item.label} className="rounded-lg border p-3 text-center">
+                <p className="text-xl font-bold tabular-nums">{item.value}</p>
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Per-admin breakdown */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="text-base">Per-admin usage</CardTitle>
+          <CardDescription>Tests, questions, attempts, and participants owned by each admin</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto sm:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="pb-2 pr-3 font-medium">Admin</th>
+                  <th className="pb-2 pr-3 font-medium">Role</th>
+                  <th className="pb-2 pr-3 text-right font-medium">Tests</th>
+                  <th className="pb-2 pr-3 text-right font-medium">Questions</th>
+                  <th className="pb-2 pr-3 text-right font-medium">Attempts</th>
+                  <th className="pb-2 text-right font-medium">Participants</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usage.perAdmin.map((a) => (
+                  <tr key={a.adminId} className="border-b last:border-0">
+                    <td className="py-2.5 pr-3">
+                      <div className="font-medium">{a.name}</div>
+                      <div className="text-xs text-muted-foreground">{a.email}</div>
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      {a.role === 'SUPER_ADMIN' ? (
+                        <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs">Super</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">Admin</Badge>
+                      )}
+                      {a.status === 'PENDING' && (
+                        <Badge className="ml-1 text-xs">Pending</Badge>
+                      )}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{a.testCount}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{a.questionCount}</td>
+                    <td className="py-2.5 pr-3 text-right tabular-nums">{a.attemptCount}</td>
+                    <td className="py-2.5 text-right tabular-nums">{a.participantCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="flex flex-col gap-2 sm:hidden">
+            {usage.perAdmin.map((a) => (
+              <div key={a.adminId} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{a.name}</p>
+                    <p className="text-xs text-muted-foreground">{a.email}</p>
+                  </div>
+                  {a.role === 'SUPER_ADMIN' ? (
+                    <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs">Super</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">Admin</Badge>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span>Tests: {a.testCount}</span>
+                  <span>Questions: {a.questionCount}</span>
+                  <span>Attempts: {a.attemptCount}</span>
+                  <span>Participants: {a.participantCount}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
