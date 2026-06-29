@@ -73,21 +73,19 @@ export async function POST(
     let resolvedIdentifier: string | null = null
 
     if (test.accessMode === 'WHITELIST') {
-      if (!identifier) {
-        return NextResponse.json(
-          { success: false, message: 'Identifier required.', code: 'IDENTIFIER_REQUIRED' },
-          { status: 400 }
-        )
-      }
-      resolvedIdentifier = normalizeIdentifier(identifier)
-      const wl = await db.whitelist.findUnique({
-        where: { testId_identifier: { testId: test.id, identifier: resolvedIdentifier } },
-      })
-      if (!wl) {
-        return NextResponse.json(
-          { success: false, message: 'You are not registered for this test.', code: 'NOT_WHITELISTED' },
-          { status: 403 }
-        )
+      // Phone is optional — used for whitelist verification + re-access.
+      // If provided, check against whitelist. If not, allow but mark as unverified.
+      if (identifier) {
+        resolvedIdentifier = normalizeIdentifier(identifier)
+        const wl = await db.whitelist.findUnique({
+          where: { testId_identifier: { testId: test.id, identifier: resolvedIdentifier } },
+        })
+        if (!wl) {
+          return NextResponse.json(
+            { success: false, message: 'You are not registered for this test.', code: 'NOT_WHITELISTED' },
+            { status: 403 }
+          )
+        }
       }
     } else if (test.accessMode === 'INVITE') {
       if (!inviteToken) {
@@ -173,10 +171,47 @@ export async function POST(
       // Already submitted the max attempts? (0 = unlimited, skip check)
       const submittedCount = participant.attempts.filter((a) => a.status === 'SUBMITTED' || a.status === 'AUTO_SUBMITTED').length
       if (test.maxAttempts > 0 && submittedCount >= test.maxAttempts) {
-        return NextResponse.json(
-          { success: false, message: 'You have already attempted this test.', code: 'ALREADY_ATTEMPTED' },
-          { status: 400 }
-        )
+        // Return the existing result so the student can see their score / status.
+        const lastAttempt = participant.attempts
+          .filter((a) => a.status === 'SUBMITTED' || a.status === 'AUTO_SUBMITTED')
+          .sort((a, b) => b.startTime.getTime() - a.startTime.getTime())[0]
+
+        // Fetch the full attempt with score + response data.
+        const fullAttempt = lastAttempt
+          ? await db.attempt.findUnique({
+              where: { id: lastAttempt.id },
+              select: {
+                id: true,
+                totalScore: true,
+                status: true,
+                startTime: true,
+                endTime: true,
+                responses: { select: { questionId: true, isCorrect: true, marksAwarded: true } },
+              },
+            })
+          : null
+
+        // Check if there are pending SHORT responses (manual grading).
+        const pendingCount = fullAttempt
+          ? fullAttempt.responses.filter((r) => r.marksAwarded === null).length
+          : 0
+
+        const showResults = test.resultReleaseMode === 'IMMEDIATE' && pendingCount === 0
+
+        return NextResponse.json({
+          success: false,
+          code: 'ALREADY_ATTEMPTED',
+          message: 'You have already attempted this test.',
+          result: fullAttempt ? {
+            score: fullAttempt.totalScore ?? 0,
+            status: fullAttempt.status,
+            startedAt: fullAttempt.startTime.toISOString(),
+            submittedAt: fullAttempt.endTime?.toISOString() ?? null,
+            pendingGrading: pendingCount,
+            showResults,
+            resultMode: test.resultReleaseMode,
+          } : null,
+        }, { status: 400 })
       }
     } else {
       // Public + no identifier — create an anonymous participant (with name).

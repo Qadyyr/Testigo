@@ -139,6 +139,15 @@ interface ResultData {
   alreadySubmitted?: boolean
   answers?: GradedAnswer[]
 }
+interface AlreadyAttemptedResult {
+  score: number
+  status: string
+  startedAt: string
+  submittedAt: string | null
+  pendingGrading: number
+  showResults: boolean
+  resultMode: 'IMMEDIATE' | 'MANUAL' | 'NEVER'
+}
 interface ApiEnvelope<T> {
   success: boolean
   message?: string
@@ -255,8 +264,23 @@ export function ParticipantTestView() {
     }
   }, [token, retryKey])
 
-  const handleStartResult = useCallback((data: ResultData | null) => {
-    setResult(data)
+  const handleStartResult = useCallback((data: ResultData | AlreadyAttemptedResult | null) => {
+    // Convert AlreadyAttemptedResult to ResultData for the Result component.
+    if (data && 'pendingGrading' in data) {
+      const r = data as AlreadyAttemptedResult
+      setResult({
+        score: r.score,
+        total: 0, // total not available in already-attempted summary
+        correct: null,
+        pending: r.pendingGrading,
+        resultMode: r.resultMode,
+        showResults: r.showResults,
+        autoSubmitted: r.status === 'AUTO_SUBMITTED',
+        alreadySubmitted: true,
+      })
+    } else {
+      setResult(data as ResultData | null)
+    }
     setPhase('result')
   }, [])
 
@@ -548,7 +572,7 @@ function Gating({
   sessionRef: React.MutableRefObject<string | null>
   onStarted: () => void
   onBack: () => void
-  onAlreadyAttempted: (data: ResultData | null) => void
+  onAlreadyAttempted: (data: ResultData | AlreadyAttemptedResult | null) => void
   sessionToken: string
 }) {
   const [name, setName] = useState('')
@@ -573,11 +597,10 @@ function Gating({
     }
     const body: Record<string, string> = { name: name.trim() }
     if (test.accessMode === 'WHITELIST') {
-      if (!identifier.trim()) {
-        setError('Enter your registered phone number.')
-        return
+      // Phone is optional — only sent if provided.
+      if (identifier.trim()) {
+        body.identifier = identifier.trim()
       }
-      body.identifier = identifier.trim()
     } else if (test.accessMode === 'INVITE') {
       if (!invite.trim()) {
         setError('Enter your invitation code.')
@@ -601,10 +624,15 @@ function Gating({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const json: ApiEnvelope<StartResponse> & { code?: string; startsAt?: string } = await res.json()
+      const json: ApiEnvelope<StartResponse> & { code?: string; startsAt?: string; result?: AlreadyAttemptedResult } = await res.json()
       if (!res.ok || !json.success || !json.data) {
         const c = json.code
-        if (c === 'ALREADY_ATTEMPTED' || c === 'TIME_UP') {
+        if (c === 'ALREADY_ATTEMPTED') {
+          // Pass the result data to the result screen.
+          onAlreadyAttempted(json.result ?? null)
+          return
+        }
+        if (c === 'TIME_UP') {
           if (c === 'TIME_UP') toast.info('Your time was up; the test was auto-submitted.')
           onAlreadyAttempted(null)
           return
@@ -663,7 +691,9 @@ function Gating({
             </div>
             {test.accessMode === 'WHITELIST' && (
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="identifier" className="text-xs">Phone number</Label>
+                <Label htmlFor="identifier" className="text-xs">
+                  Phone number <span className="text-muted-foreground font-normal">(optional)</span>
+                </Label>
                 <Input
                   id="identifier"
                   type="tel"
@@ -1340,7 +1370,7 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
   const reduceMotion = useReducedMotion()
 
   if (!result) {
-    // already-attempted edge case (no result data fetched)
+    // No result data at all — shouldn't normally happen.
     return (
       <Card className="mx-auto max-w-md">
         <CardHeader className="items-center text-center">
@@ -1357,6 +1387,8 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
     )
   }
 
+  const isRevisit = result.alreadySubmitted === true
+
   return (
     <motion.div
       initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
@@ -1369,22 +1401,37 @@ function Result({ result, onHome }: { result: ResultData | null; onHome: () => v
           {result.showResults ? (
             <>
               <CheckCircle2 className="size-12 text-amber-600" />
-              <CardTitle className="text-2xl">Test submitted!</CardTitle>
+              <CardTitle className="text-2xl">
+                {isRevisit ? 'Your result' : 'Test submitted!'}
+              </CardTitle>
               <div className="mt-2">
                 <span className="text-4xl font-bold text-amber-600">{result.score}%</span>
               </div>
-              {result.correct !== null && (
+              {result.correct !== null && result.total > 0 && (
                 <CardDescription>
                   {result.correct} of {result.total} correct
                 </CardDescription>
               )}
             </>
+          ) : result.pending > 0 ? (
+            <>
+              <Clock className="size-12 text-amber-600" />
+              <CardTitle className="text-2xl">
+                {isRevisit ? 'Results pending' : 'Test submitted'}
+              </CardTitle>
+              <CardDescription>
+                {result.pending} answer{result.pending > 1 ? 's' : ''} awaiting manual grading.
+                Check back later for your final score.
+              </CardDescription>
+            </>
           ) : result.resultMode === 'MANUAL' ? (
             <>
               <Clock className="size-12 text-amber-600" />
-              <CardTitle className="text-2xl">Results pending</CardTitle>
+              <CardTitle className="text-2xl">
+                {isRevisit ? 'Results pending' : 'Test submitted'}
+              </CardTitle>
               <CardDescription>
-                Your test has been submitted. Your teacher will release the results.
+                Your teacher hasn&apos;t released the results yet. Check back later.
               </CardDescription>
             </>
           ) : (
