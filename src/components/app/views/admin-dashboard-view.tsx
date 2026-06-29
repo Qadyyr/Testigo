@@ -996,13 +996,32 @@ function TestsContent({ navigate, isSuperAdmin }: { navigate: (view?: string, ex
                     </TooltipTrigger>
                     <TooltipContent>Copy test link</TooltipContent>
                   </Tooltip>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleTogglePublish(t)}
-                  >
-                    {t.isPublished ? 'Unpublish' : 'Publish'}
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                      >
+                        {t.isPublished ? 'Unpublish' : 'Publish'}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{t.isPublished ? 'Unpublish' : 'Publish'} &ldquo;{t.title}&rdquo;?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {t.isPublished
+                            ? 'Students will no longer be able to access this test. Existing attempts are preserved.'
+                            : 'Students will be able to access this test immediately via code or link.'}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleTogglePublish(t)}>
+                          {t.isPublished ? 'Unpublish' : 'Publish'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1413,15 +1432,32 @@ function AdminsContent() {
                     {acting === a.id + 'approve' ? <Loader2 className="size-4 animate-spin" /> : <UserCheck className="size-4" />}
                     Approve
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleAction(a.id, 'reject')}
-                    disabled={!!acting}
-                  >
-                    {acting === a.id + 'reject' ? <Loader2 className="size-4 animate-spin" /> : <UserX className="size-4" />}
-                    Reject
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!!acting}
+                      >
+                        {acting === a.id + 'reject' ? <Loader2 className="size-4 animate-spin" /> : <UserX className="size-4" />}
+                        Reject
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Reject {a.name}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          The user will not be able to log in. They can register again, but you will need to approve the new request.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleAction(a.id, 'reject')}>
+                          Reject request
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             ))}
@@ -1457,12 +1493,51 @@ function AdminsContent() {
               </div>
               {a.status === 'APPROVED' && a.role !== 'SUPER_ADMIN' && (
                 <div className="flex shrink-0 gap-1.5">
-                  <Button size="sm" variant="outline" onClick={() => handleAction(a.id, 'promote')} disabled={!!acting}>
-                    Promote
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleAction(a.id, 'delete')} disabled={!!acting}>
-                    {acting === a.id + 'delete' ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" disabled={!!acting}>
+                        Promote
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Promote {a.name} to Super Admin?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This grants full platform access — they will be able to see all tests, manage admins, and view database usage. Super Admin accounts cannot be demoted or deleted.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleAction(a.id, 'promote')}>
+                          Promote to Super Admin
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" disabled={!!acting}>
+                        {acting === a.id + 'delete' ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete {a.name}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This permanently deletes the admin account. Their tests, questions, attempts, and all related data will also be deleted. This cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleAction(a.id, 'delete')}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete account
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               )}
               {a.status === 'APPROVED' && a.role === 'SUPER_ADMIN' && (
