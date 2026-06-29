@@ -54,7 +54,7 @@ export async function GET(
       db.question.findMany({
         where: { testId: test.id },
         orderBy: { order: 'asc' },
-        select: { id: true, questionText: true, type: true, options: true, positiveMarks: true, negativeMarks: true, order: true },
+        select: { id: true, questionText: true, type: true, options: true, correctAnswers: true, positiveMarks: true, negativeMarks: true, order: true },
       }),
       db.response.findMany({
         where: { attemptId: session.attemptId },
@@ -91,18 +91,22 @@ export async function GET(
         negativeMarks: test.negativeMarks,
         partialMarks: test.partialMarks,
       },
-      // Strip correctAnswers — never sent to client.
-      // Note: SQLite Json fields may return as a JSON string (double-encoded
-      // if inserted via JSON.stringify). Parse to a real array here.
-      questions: questions.map((q) => ({
-        id: q.id,
-        questionText: q.questionText,
-        type: q.type,
-        options: parseJsonArray(q.options),
-        positiveMarks: q.positiveMarks,
-        negativeMarks: q.negativeMarks,
-        order: q.order,
-      })),
+      // Strip correctAnswers — never sent to client. But send a boolean
+      // indicating whether multiple selections are allowed (for radio vs
+      // checkbox UI) without revealing the actual correct answer(s).
+      questions: questions.map((q) => {
+        const correctArr = parseJsonArray(q.correctAnswers).map((n) => Number(n)).filter((n) => Number.isFinite(n))
+        return {
+          id: q.id,
+          questionText: q.questionText,
+          type: q.type,
+          options: parseJsonArray(q.options),
+          multiCorrect: correctArr.length > 1,
+          positiveMarks: q.positiveMarks,
+          negativeMarks: q.negativeMarks,
+          order: q.order,
+        }
+      }),
       answers,
       attempt: {
         startTime: attempt.startTime.toISOString(),

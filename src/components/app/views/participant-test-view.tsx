@@ -95,6 +95,7 @@ interface LoadQuestion {
   questionText: string
   type: 'MCQ' | 'TRUE_FALSE' | 'SHORT'
   options: string[]
+  multiCorrect?: boolean
   positiveMarks: number
   negativeMarks: number
   order: number
@@ -1075,6 +1076,7 @@ function Taking({
         {q.type === 'MCQ' || q.type === 'TRUE_FALSE' ? (
           <MCQInput
             options={q.options}
+            multiCorrect={q.multiCorrect ?? false}
             selected={Array.isArray(store.answers[q.id])
               ? (store.answers[q.id] as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n))
               : []}
@@ -1264,21 +1266,36 @@ function PaletteContent({
 
 function MCQInput({
   options,
+  multiCorrect,
   selected,
   onChange,
 }: {
   options: string[]
+  multiCorrect: boolean
   selected: number[]
   onChange: (sel: number[]) => void
 }) {
   const opts = Array.isArray(options) ? options : []
   const sel = Array.isArray(selected) ? selected : []
-  function toggle(i: number) {
-    const set = new Set(sel)
-    if (set.has(i)) set.delete(i)
-    else set.add(i)
-    onChange([...set].sort((a, b) => a - b))
+
+  function handleSelect(i: number) {
+    if (multiCorrect) {
+      // Multi-select: toggle individual options (checkbox behavior).
+      const set = new Set(sel)
+      if (set.has(i)) set.delete(i)
+      else set.add(i)
+      onChange([...set].sort((a, b) => a - b))
+    } else {
+      // Single-select: replace the selection (radio behavior).
+      // Clicking the already-selected option deselects it.
+      if (sel.length === 1 && sel[0] === i) {
+        onChange([])
+      } else {
+        onChange([i])
+      }
+    }
   }
+
   return (
     <div className="flex flex-col gap-2">
       {opts.map((opt, i) => {
@@ -1287,18 +1304,32 @@ function MCQInput({
           <button
             key={i}
             type="button"
-            onClick={() => toggle(i)}
+            onClick={() => handleSelect(i)}
             className={`flex items-center gap-3.5 rounded-xl border-2 p-4 text-left text-base transition sm:p-5 ${
               checked
                 ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
                 : 'border-border hover:border-amber-300 hover:bg-accent/50'
             }`}
           >
-            <Checkbox checked={checked} className="size-5" />
+            {multiCorrect ? (
+              <Checkbox checked={checked} className="size-5" />
+            ) : (
+              <span className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition ${
+                checked ? 'border-amber-500 bg-amber-500' : 'border-border'
+              }`}>
+                {checked && <span className="size-2 rounded-full bg-white" />}
+              </span>
+            )}
             <span className="flex-1 font-medium">{String(opt)}</span>
           </button>
         )
       })}
+      {!multiCorrect && (
+        <p className="mt-1 text-xs text-muted-foreground">Select one option</p>
+      )}
+      {multiCorrect && (
+        <p className="mt-1 text-xs text-muted-foreground">Select all that apply</p>
+      )}
     </div>
   )
 }
