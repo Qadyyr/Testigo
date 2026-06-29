@@ -351,6 +351,9 @@ export function AnalyticsView() {
             </Card>
           )}
 
+          {/* Student results */}
+          <StudentsTable testId={testId} />
+
           {/* Per-question difficulty */}
           <Card>
             <CardHeader>
@@ -393,9 +396,6 @@ export function AnalyticsView() {
               ))}
             </CardContent>
           </Card>
-
-          {/* Students table */}
-          <StudentsTable testId={testId} />
         </div>
       </main>
 
