@@ -811,13 +811,9 @@ function Taking({
   const [loadData, setLoadData] = useState<LoadResponse | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [remainingMs, setRemainingMs] = useState<number | null>(null)
-  const [tabSwitches, setTabSwitches] = useState(0)
-  const [warned, setWarned] = useState(0)
   const [submitting, setSubmitting] = useState(false)
 
   const store = useTestStore()
-  const tabSwitchesRef = useRef(0)
-  tabSwitchesRef.current = tabSwitches
 
   // Load questions.
   useEffect(() => {
@@ -892,25 +888,21 @@ function Taking({
     return () => clearInterval(interval)
   }, [loadData, store.current])
 
-  // Anti-cheat: tab switching.
+  // Copy prevention: disable copy, paste, cut, context menu, and text selection
+  // during the test so students can't copy questions to search for answers.
   useEffect(() => {
-    function onVisibility() {
-      if (document.hidden) {
-        setTabSwitches((n) => {
-          const next = n + 1
-          tabSwitchesRef.current = next
-          if (next >= 3) {
-            handleSubmit(true)
-          } else {
-            setWarned(next)
-            toast.warning(`Tab switch detected (${next}/3). After 3, your test is auto-submitted.`)
-          }
-          return next
-        })
-      }
+    function preventCopy(e: Event) { e.preventDefault() }
+    function preventContextMenu(e: MouseEvent) { e.preventDefault() }
+    document.addEventListener('copy', preventCopy)
+    document.addEventListener('cut', preventCopy)
+    document.addEventListener('paste', preventCopy)
+    document.addEventListener('contextmenu', preventContextMenu)
+    return () => {
+      document.removeEventListener('copy', preventCopy)
+      document.removeEventListener('cut', preventCopy)
+      document.removeEventListener('paste', preventCopy)
+      document.removeEventListener('contextmenu', preventContextMenu)
     }
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
 
   const saveAnswer = useCallback(
@@ -975,7 +967,6 @@ function Taking({
         },
         body: JSON.stringify({
           answers,
-          tabSwitches: tabSwitchesRef.current,
           auto,
         }),
       })
@@ -1086,15 +1077,8 @@ function Taking({
         </div>
       </div>
 
-      {/* Tab-switch warning */}
-      {warned > 0 && warned < 3 && (
-        <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-xs font-medium text-amber-700 dark:text-amber-300 sm:px-6">
-          Tab switching detected ({warned}/3). After 3 switches your test will be auto-submitted.
-        </div>
-      )}
-
       {/* Centered question — full width, generous spacing */}
-      <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto w-full max-w-3xl select-none flex-1 px-4 py-8 sm:px-6 sm:py-12">
         {/* Question meta */}
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1150,7 +1134,7 @@ function Taking({
             onChange={(e) => store.setAnswer(q.id, e.target.value)}
             onBlur={() => saveAnswer(q.id)}
             rows={6}
-            className="resize-y text-base"
+            className="resize-y select-text text-base"
           />
         )}
 
