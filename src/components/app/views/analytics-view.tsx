@@ -393,11 +393,199 @@ export function AnalyticsView() {
               ))}
             </CardContent>
           </Card>
+
+          {/* Students table */}
+          <StudentsTable testId={testId} />
         </div>
       </main>
 
       <SiteFooter />
     </div>
+  )
+}
+
+// ---- Students table (real-time per-student data) ---------------------------
+
+interface StudentAttempt {
+  id: string
+  name: string
+  identifier: string
+  score: number
+  status: string
+  startedAt: string
+  submittedAt: string | null
+  durationSeconds: number | null
+  durationLabel: string
+  questionsAttempted: number
+  questionsTotal: number
+}
+interface ResultsResponse {
+  success: boolean
+  data?: {
+    test: { id: string; title: string }
+    questionsTotal: number
+    attempts: StudentAttempt[]
+  }
+  message?: string
+}
+
+function StudentsTable({ testId }: { testId: string }) {
+  const [attempts, setAttempts] = useState<StudentAttempt[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/admin/tests/${encodeURIComponent(testId)}/results`, {
+          credentials: 'include',
+        })
+        if (cancelled) return
+        if (!res.ok) throw new Error(`Request failed (${res.status})`)
+        const json: ResultsResponse = await res.json()
+        if (cancelled) return
+        if (json.success && json.data) {
+          setAttempts(json.data.attempts)
+        } else {
+          throw new Error(json.message ?? 'Failed to load results')
+        }
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Network error')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [testId])
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Student results</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Student results</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-destructive">{error}</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (attempts.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Student results</CardTitle>
+          <CardDescription>No students have taken this test yet.</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Student results</CardTitle>
+        <CardDescription>
+          {attempts.length} student{attempts.length === 1 ? '' : 's'} · real-time data
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {/* Desktop table */}
+        <div className="hidden overflow-x-auto sm:block">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs text-muted-foreground">
+                <th className="pb-2 pr-3 font-medium">Name</th>
+                <th className="pb-2 pr-3 font-medium">Score</th>
+                <th className="pb-2 pr-3 font-medium">Questions</th>
+                <th className="pb-2 pr-3 font-medium">Duration</th>
+                <th className="pb-2 pr-3 font-medium">Started</th>
+                <th className="pb-2 font-medium">Submitted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {attempts.map((a) => (
+                <tr key={a.id} className="border-b last:border-0">
+                  <td className="py-2.5 pr-3">
+                    <div className="font-medium">{a.name}</div>
+                    <div className="text-xs text-muted-foreground">{a.identifier}</div>
+                  </td>
+                  <td className="py-2.5 pr-3">
+                    <span className={`font-semibold tabular-nums ${a.score >= 50 ? 'text-amber-600' : 'text-destructive'}`}>
+                      {a.score}%
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-3 tabular-nums">
+                    {a.questionsAttempted}/{a.questionsTotal}
+                  </td>
+                  <td className="py-2.5 pr-3 font-mono text-xs">
+                    {a.durationLabel}
+                  </td>
+                  <td className="py-2.5 pr-3 text-xs text-muted-foreground">
+                    {new Date(a.startedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </td>
+                  <td className="py-2.5 text-xs text-muted-foreground">
+                    {a.submittedAt
+                      ? new Date(a.submittedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+                      : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile cards */}
+        <div className="flex flex-col gap-3 sm:hidden">
+          {attempts.map((a) => (
+            <div key={a.id} className="rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">{a.name}</p>
+                  <p className="text-xs text-muted-foreground">{a.identifier}</p>
+                </div>
+                <span className={`font-semibold tabular-nums ${a.score >= 50 ? 'text-amber-600' : 'text-destructive'}`}>
+                  {a.score}%
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>Questions: {a.questionsAttempted}/{a.questionsTotal}</span>
+                <span>Duration: {a.durationLabel}</span>
+              </div>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <span>Started: {new Date(a.startedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                {a.submittedAt && (
+                  <span>Submitted: {new Date(a.submittedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

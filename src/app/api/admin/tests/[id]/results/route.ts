@@ -5,10 +5,22 @@ import { fail } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
+/** Format seconds into a human-readable duration (e.g. "5m 30s" or "1h 12m"). */
+function formatDuration(seconds: number): string {
+  if (seconds < 0 || !Number.isFinite(seconds)) return '—'
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = Math.floor(seconds % 60)
+  if (h > 0) return `${h}h ${m}m`
+  if (m > 0) return `${m}m ${s}s`
+  return `${s}s`
+}
+
 /**
  * GET /api/admin/tests/{id}/results
- * Returns all attempts for a test, with per-question responses.
- * Used for CSV export + the results table.
+ * Returns all attempts for a test with full per-student data:
+ *   name, identifier, score, status, startedAt, submittedAt,
+ *   durationSeconds, durationLabel, questionsAttempted, questionsTotal
  *
  * Query: ?format=csv → returns CSV text. Default → JSON.
  *
@@ -32,7 +44,7 @@ export async function GET(
       where: { id },
       select: { id: true, title: true, createdBy: true },
     })
-    if (!test || (test.createdBy !== session.user.id && session.user.role !== "SUPER_ADMIN")) {
+    if (!test || (test.createdBy !== session.user.id && session.user.role !== 'SUPER_ADMIN')) {
       return fail('Test not found', 404)
     }
 
@@ -46,14 +58,48 @@ export async function GET(
         where: { testId: id, status: { in: ['SUBMITTED', 'AUTO_SUBMITTED'] } },
         include: {
           participant: { select: { identifier: true, name: true } },
-          responses: { select: { questionId: true, isCorrect: true, marksAwarded: true } },
+          responses: { select: { questionId: true, isCorrect: true, marksAwarded: true, userAnswer: true } },
         },
         orderBy: { startTime: 'desc' },
       }),
     ])
 
+    const questionsTotal = questions.length
+
+    // Build enriched attempt data.
+    const enriched = attempts.map((a) => {
+      const durationSeconds = a.endTime
+        ? Math.round((a.endTime.getTime() - a.startTime.getTime()) / 1000)
+        : null
+      // Count attempted questions (has a non-null userAnswer that isn't empty).
+      const questionsAttempted = a.responses.filter((r) => {
+        if (r.userAnswer === null) return false
+        if (Array.isArray(r.userAnswer)) return r.userAnswer.length > 0
+        if (typeof r.userAnswer === 'string') return r.userAnswer.trim() !== ''
+        return true
+      }).length
+
+      return {
+        id: a.id,
+        name: a.participant.name ?? 'Anonymous',
+        identifier: a.participant.identifier ?? '—',
+        score: a.totalScore ?? 0,
+        status: a.status,
+        startedAt: a.startTime.toISOString(),
+        submittedAt: a.endTime?.toISOString() ?? null,
+        durationSeconds,
+        durationLabel: durationSeconds != null ? formatDuration(durationSeconds) : '—',
+        questionsAttempted,
+        questionsTotal,
+        responses: a.responses.map((r) => ({
+          questionId: r.questionId,
+          isCorrect: r.isCorrect,
+          marksAwarded: r.marksAwarded,
+        })),
+      }
+    })
+
     if (format === 'csv') {
-      // Build CSV: one row per attempt, columns = identifier, score, status, start, end, Q1, Q2, ...
       const headers = [
         'Name',
         'Identifier',
@@ -61,17 +107,23 @@ export async function GET(
         'Status',
         'Started',
         'Submitted',
+        'Duration',
+        'Questions Attempted',
+        'Questions Total',
         ...questions.map((q) => `Q${q.order + 1}`),
       ]
-      const rows = attempts.map((a) => {
+      const rows = enriched.map((a) => {
         const respMap = new Map(a.responses.map((r) => [r.questionId, r]))
         return [
-          a.participant.name ?? '',
-          a.participant.identifier ?? 'anonymous',
-          String(a.totalScore ?? 0),
-          a.status,
-          a.startTime.toISOString(),
-          a.endTime?.toISOString() ?? '',
+          a.name,
+          a.identifier,
+          String(a.score),
+          a.status === 'AUTO_SUBMITTED' ? 'Auto-submitted' : 'Submitted',
+          a.startedAt,
+          a.submittedAt ?? '',
+          a.durationLabel,
+          String(a.questionsAttempted),
+          String(a.questionsTotal),
           ...questions.map((q) => {
             const r = respMap.get(q.id)
             if (!r) return 'skipped'
@@ -100,21 +152,8 @@ export async function GET(
       message: 'ok',
       data: {
         test: { id: test.id, title: test.title },
-        questions: questions.map((q) => ({ id: q.id, text: q.questionText, order: q.order })),
-        attempts: attempts.map((a) => ({
-          id: a.id,
-          name: a.participant.name,
-          identifier: a.participant.identifier ?? 'anonymous',
-          score: a.totalScore,
-          status: a.status,
-          startedAt: a.startTime.toISOString(),
-          submittedAt: a.endTime?.toISOString() ?? null,
-          responses: a.responses.map((r) => ({
-            questionId: r.questionId,
-            isCorrect: r.isCorrect,
-            marksAwarded: r.marksAwarded,
-          })),
-        })),
+        questionsTotal,
+        attempts: enriched,
       },
     })
   } catch (err) {
