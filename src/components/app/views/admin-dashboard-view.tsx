@@ -48,6 +48,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import {
   Sheet,
@@ -1200,9 +1201,8 @@ function SettingsContent() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="current" className="text-xs">Current password</Label>
-              <Input
+              <PasswordInput
                 id="current"
-                type="password"
                 autoComplete="current-password"
                 value={current}
                 onChange={(e) => setCurrent(e.target.value)}
@@ -1212,9 +1212,8 @@ function SettingsContent() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="new" className="text-xs">New password</Label>
-              <Input
+              <PasswordInput
                 id="new"
-                type="password"
                 autoComplete="new-password"
                 value={newPass}
                 onChange={(e) => setNewPass(e.target.value)}
@@ -1224,9 +1223,8 @@ function SettingsContent() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="confirm" className="text-xs">Confirm new password</Label>
-              <Input
+              <PasswordInput
                 id="confirm"
-                type="password"
                 autoComplete="new-password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
@@ -1365,7 +1363,7 @@ function AdminsContent() {
                 </div>
                 <div className="flex flex-col gap-1.5 sm:flex-1">
                   <Label htmlFor="new-pass" className="text-xs">Password</Label>
-                  <Input id="new-pass" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 8 chars" disabled={creating} />
+                  <PasswordInput id="new-pass" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 8 chars" disabled={creating} />
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" disabled={creating} className="bg-amber-600 text-white hover:bg-amber-700">

@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, CheckCircle2, Loader2, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import {
   Card,
@@ -154,9 +155,8 @@ export function RegisterView() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     autoComplete="new-password"
                     placeholder="At least 8 characters"
                     aria-invalid={!!errors.password}
