@@ -1039,8 +1039,8 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
           exactly what students will see (without the correct-answer highlight).
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="max-h-[28rem] space-y-3 overflow-y-auto rounded-lg border p-3 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+      <CardContent className="flex flex-col gap-4">
+        <div className="space-y-4">
           {questions.map((q, i) => {
             const correctIdx = Array.isArray(q.correctAnswers)
               ? (q.correctAnswers as number[])
@@ -1049,13 +1049,13 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
               ? (q.correctAnswers as string[])
               : []
             return (
-              <div key={i} className="rounded-lg border bg-card p-3 sm:p-4">
-                <div className="mb-2 flex items-start gap-3">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+              <div key={i} className="rounded-lg border bg-card p-4 sm:p-5">
+                <div className="mb-4 flex items-start gap-3">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
                       <Badge
                         variant="outline"
                         className={typeBadgeClass(q.type)}
@@ -1063,7 +1063,7 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
                         {typeLabel(q.type)}
                       </Badge>
                     </div>
-                    <p className="text-sm font-medium leading-relaxed">
+                    <p className="text-base font-semibold leading-relaxed">
                       {q.questionText}
                     </p>
                   </div>
@@ -1071,22 +1071,22 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
 
                 {/* Options for MCQ / TRUE_FALSE */}
                 {(q.type === 'MCQ' || q.type === 'TRUE_FALSE') && (
-                  <div className="flex flex-col gap-1.5 sm:pl-10">
+                  <div className="flex flex-col gap-2 sm:pl-11">
                     {q.options.map((opt, oi) => {
                       const isCorrect = correctIdx.includes(oi)
                       return (
                         <div
                           key={oi}
-                          className={`flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-sm sm:items-center sm:px-3 ${
+                          className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-base ${
                             isCorrect
-                              ? 'border-amber-500/50 bg-amber-50 dark:bg-amber-950/30'
+                              ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30'
                               : 'border-border'
                           }`}
                         >
                           {isCorrect ? (
-                            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-amber-600 sm:mt-0" />
+                            <CheckCircle2 className="size-5 shrink-0 text-amber-600" />
                           ) : (
-                            <span className="mt-0.5 size-3.5 shrink-0 rounded-full border sm:mt-0" />
+                            <span className="size-5 shrink-0 rounded-full border-2 border-border" />
                           )}
                           <span
                             className={`min-w-0 flex-1 ${
@@ -1110,12 +1110,12 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
 
                 {/* Acceptable answers for SHORT */}
                 {q.type === 'SHORT' && (
-                  <div className="flex flex-col gap-1.5 sm:pl-10">
-                    <div className="rounded-md border border-amber-500/40 bg-amber-50 p-2.5 text-sm dark:bg-amber-950/30">
+                  <div className="flex flex-col gap-2 sm:pl-11">
+                    <div className="rounded-xl border border-amber-500/40 bg-amber-50 p-3 text-base dark:bg-amber-950/30">
                       <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
                         Acceptable answers
                       </span>
-                      <p className="mt-0.5 break-words text-amber-800 dark:text-amber-200">
+                      <p className="mt-1 break-words text-amber-800 dark:text-amber-200">
                         {acceptable.join(', ')}
                       </p>
                     </div>
@@ -1124,7 +1124,7 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
 
                 {/* Explanation */}
                 {q.explanation && (
-                  <div className="mt-2 rounded-md border border-border bg-muted/20 p-2.5 text-sm sm:ml-10">
+                  <div className="mt-3 rounded-xl border border-border bg-muted/20 p-3 text-base sm:ml-11">
                     <span className="block text-xs font-medium text-muted-foreground">
                       Explanation
                     </span>
