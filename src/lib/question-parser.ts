@@ -538,15 +538,13 @@ export const SAMPLE_CSV = `questionText,type,options,correctAnswers,explanation
 "The Earth is flat.",TRUE_FALSE,,"1","The Earth is an oblate spheroid."
 "Capital of France?",SHORT,,"Paris|paris","Paris has been France's capital since 987 AD."
 "Which are prime?",MCQ,"2;4;7;9","0;2","2 and 7 are prime; 4 and 9 are not."
-"Broken row — no answer",MCQ,"A;B;C","","This should show an error."
 `
 
 export const SAMPLE_JSON = `[
   { "questionText": "What is 2 + 2?", "type": "MCQ", "options": ["1","2","3","4"], "correctAnswers": [3], "explanation": "2 + 2 = 4." },
   { "questionText": "The Earth is flat.", "type": "TRUE_FALSE", "correctAnswers": [1], "explanation": "The Earth is an oblate spheroid." },
   { "questionText": "Capital of France?", "type": "SHORT", "correctAnswers": ["Paris","paris"], "explanation": "Paris has been France's capital since 987 AD." },
-  { "questionText": "Which are prime?", "type": "MCQ", "options": ["2","4","7","9"], "correctAnswers": [0,2], "explanation": "2 and 7 are prime; 4 and 9 are not." },
-  { "questionText": "", "type": "MCQ", "options": ["A","B"], "correctAnswers": [0], "explanation": "This row has no question text — should error." }
+  { "questionText": "Which are prime?", "type": "MCQ", "options": ["2","4","7","9"], "correctAnswers": [0,2], "explanation": "2 and 7 are prime; 4 and 9 are not." }
 ]
 `
 
@@ -575,10 +573,4 @@ answer: paris
 - [x] 7
 - [ ] 9
 > 2 and 7 are prime; 4 and 9 are not.
-
-### Broken row — no answer marked
-- [ ] A
-- [ ] B
-- [ ] C
-> This should show an error (no correct option marked).
 `
