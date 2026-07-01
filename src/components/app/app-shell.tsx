@@ -9,6 +9,7 @@ import { LoginView } from './views/login-view'
 import { RegisterView } from './views/register-view'
 import { AdminDashboardView } from './views/admin-dashboard-view'
 import { CreateTestView } from './views/create-test-view'
+import { EditTestView } from './views/edit-test-view'
 import { AnalyticsView } from './views/analytics-view'
 import { GradingView } from './views/grading-view'
 import { ResultsView } from './views/results-view'
@@ -31,6 +32,9 @@ function ViewSwitch() {
       break
     case 'create':
       content = <CreateTestView />
+      break
+    case 'edit':
+      content = <EditTestView />
       break
     case 'analytics':
       content = <AnalyticsView />

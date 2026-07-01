@@ -10,6 +10,7 @@ import {
   Clock,
   Copy,
   Database as DatabaseIcon,
+  Edit,
   FileText,
   LayoutDashboard,
   Loader2,
@@ -1022,6 +1023,14 @@ function TestsContent({ navigate, isSuperAdmin }: { navigate: (view?: string, ex
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('edit', { id: t.id })}
+                  >
+                    <Edit className="size-4" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
