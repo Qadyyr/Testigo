@@ -58,7 +58,7 @@ export async function GET(
       : true
     const scheduledClosed = test.endTime ? now > test.endTime.getTime() : false
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       message: 'ok',
       data: {
@@ -85,6 +85,8 @@ export async function GET(
         },
       },
     })
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
+    return response
   } catch (err) {
     console.error('[GET /api/tests/[link]]', err)
     return NextResponse.json(

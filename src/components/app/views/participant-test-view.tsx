@@ -257,7 +257,7 @@ export function ParticipantTestView() {
     setPhase('loading')
     async function load() {
       try {
-        const res = await fetch(`/api/tests/${encodeURIComponent(token)}`)
+        const res = await fetch(`/api/tests/${encodeURIComponent(token)}`, { cache: 'no-store' })
         if (cancelled) return
         if (res.status === 404) {
           setPhase('not-found')
