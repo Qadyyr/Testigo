@@ -162,15 +162,15 @@ export function ResultsView() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur sm:px-6">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate('analytics', { id: testId })}>
+      <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b bg-background/80 px-4 py-2 backdrop-blur sm:px-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate('analytics', { id: testId })} className="shrink-0">
             <ArrowLeft className="size-4" />
             <span className="hidden sm:inline">Analytics</span>
           </Button>
-          <span className="text-sm font-semibold">{testTitle || 'Results'}</span>
+          <span className="min-w-0 break-words text-sm font-semibold leading-tight">{testTitle || 'Results'}</span>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={totalCount === 0}>
+        <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={totalCount === 0} className="shrink-0">
           <Download className="size-4" />
           <span className="hidden sm:inline">Export CSV</span>
         </Button>

@@ -219,17 +219,17 @@ export function AnalyticsView() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Top bar */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur sm:px-6">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate('admin')}>
+      <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b bg-background/80 px-4 py-2 backdrop-blur sm:px-6">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate('admin')} className="shrink-0">
             <ArrowLeft className="size-4" />
             <span className="hidden sm:inline">Dashboard</span>
           </Button>
-          <Separator orientation="vertical" className="mx-1 h-6" />
-          <BarChart3 className="size-4 text-amber-600" />
-          <h1 className="truncate text-sm font-semibold sm:text-base">{data.test.title}</h1>
+          <Separator orientation="vertical" className="mx-1 h-6 shrink-0" />
+          <BarChart3 className="size-4 shrink-0 text-amber-600" />
+          <h1 className="min-w-0 break-words text-sm font-semibold leading-tight sm:text-base">{data.test.title}</h1>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate('admin')} className="text-muted-foreground">
             <LogOut className="size-4" />
