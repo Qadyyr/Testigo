@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 const patchSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  description: z.string().max(2000).optional(),
+  description: z.string().max(2000).optional().nullable(),
   startTime: z.string().datetime().optional().nullable(),
   endTime: z.string().datetime().optional().nullable(),
   timezone: z.string().max(100).optional().nullable(),
