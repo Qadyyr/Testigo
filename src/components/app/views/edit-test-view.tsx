@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
-import { ArrowLeft, Loader2, Plus, Save, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Loader2, Plus, Save, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -93,6 +93,7 @@ export function EditTestView() {
   const [negativeMarks, setNegativeMarks] = useState('0')
   const [requireCode, setRequireCode] = useState(false)
   const [isPublished, setIsPublished] = useState(false)
+  const [editTab, setEditTab] = useState<'settings' | 'questions'>('settings')
 
   const navigateRef = useRef(navigate)
   navigateRef.current = navigate
@@ -220,14 +221,34 @@ export function EditTestView() {
           </Button>
           <h1 className="truncate text-sm font-semibold sm:text-base">Edit test</h1>
         </div>
-        {test.isPublished ? (
-          <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">Published</Badge>
-        ) : (
-          <Badge variant="secondary">Draft</Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Tab switcher */}
+          <div className="flex rounded-lg border bg-muted/40 p-0.5">
+            <button
+              type="button"
+              onClick={() => setEditTab('settings')}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition ${editTab === 'settings' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Settings
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditTab('questions')}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition ${editTab === 'questions' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Questions
+            </button>
+          </div>
+          {test.isPublished ? (
+            <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">Published</Badge>
+          ) : (
+            <Badge variant="secondary">Draft</Badge>
+          )}
+        </div>
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 sm:px-6">
+        {editTab === 'settings' && (
         <form onSubmit={handleSave} className="flex flex-col gap-4">
           {/* Details */}
           <Card>
@@ -362,14 +383,16 @@ export function EditTestView() {
             <Button type="submit" disabled={saving} className="bg-amber-600 text-white hover:bg-amber-700">
               {saving ? <><Loader2 className="size-4 animate-spin" /> Saving…</> : <><Save className="size-4" /> Save settings</>}
             </Button>
-            <Button type="button" variant="outline" onClick={() => navigate('analytics', { id: testId })} disabled={saving}>
-              Cancel
+            <Button type="button" variant="outline" onClick={() => setEditTab('questions')} disabled={saving}>
+              Next: Questions <ArrowRight className="size-4" />
             </Button>
           </div>
         </form>
+        )}
 
-        {/* Questions management */}
-        <QuestionsManager testId={testId} />
+        {editTab === 'questions' && (
+          <QuestionsManager testId={testId} onBack={() => setEditTab('settings')} />
+        )}
       </main>
 
       <SiteFooter />
@@ -391,7 +414,7 @@ interface QItem {
   order: number
 }
 
-function QuestionsManager({ testId }: { testId: string }) {
+function QuestionsManager({ testId, onBack }: { testId: string; onBack: () => void }) {
   const [questions, setQuestions] = useState<QItem[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -445,21 +468,35 @@ function QuestionsManager({ testId }: { testId: string }) {
     } catch { toast.error('Network error') }
   }
 
-  if (loading) return <div className="flex flex-col gap-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}</div>
+  if (loading) return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-8 w-32" />
+      </div>
+      <div className="flex flex-col gap-2">
+        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+      </div>
+    </div>
+  )
 
   return (
-    <Card className="mt-6">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-base">Questions ({questions.length})</CardTitle>
-            <CardDescription>Edit, add, or delete questions</CardDescription>
-          </div>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold">Questions ({questions.length})</h2>
+          <p className="text-xs text-muted-foreground">Edit, add, or delete questions</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onBack}>
+            <ArrowLeft className="size-4" /> Settings
+          </Button>
           <Button size="sm" onClick={() => setShowAdd(true)} className="bg-amber-600 text-white hover:bg-amber-700">
             <Plus className="size-4" /> Add question
           </Button>
         </div>
-      </CardHeader>
+      </div>
+    <Card>
       <CardContent className="flex flex-col gap-0">
         {showAdd && (
           <QuestionEditor
@@ -521,6 +558,7 @@ function QuestionsManager({ testId }: { testId: string }) {
         )}
       </CardContent>
     </Card>
+    </div>
   )
 }
 
