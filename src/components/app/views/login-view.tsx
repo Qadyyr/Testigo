@@ -69,6 +69,12 @@ export function LoginView() {
           setSubmitting(false)
           return
         }
+        if (checkJson.status === 'SUSPENDED') {
+          setFormError('Your account has been suspended. Contact the platform administrator.')
+          toast.error('Account suspended.')
+          setSubmitting(false)
+          return
+        }
       }
 
       const res = await signIn('credentials', {

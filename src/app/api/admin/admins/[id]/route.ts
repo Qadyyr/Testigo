@@ -7,7 +7,7 @@ import { fail } from '@/lib/api'
 export const dynamic = 'force-dynamic'
 
 const patchSchema = z.object({
-  action: z.enum(['approve', 'reject', 'delete', 'promote', 'demote']),
+  action: z.enum(['approve', 'reject', 'delete', 'promote', 'demote', 'suspend', 'unsuspend']),
 })
 
 /**
@@ -41,8 +41,8 @@ export async function PATCH(
     const target = await db.admin.findUnique({ where: { id } })
     if (!target) return fail('Admin not found', 404)
 
-    if (target.role === 'SUPER_ADMIN' && (action === 'demote' || action === 'delete')) {
-      return fail('Super Admin accounts cannot be demoted or deleted', 400)
+    if (target.role === 'SUPER_ADMIN' && (action === 'demote' || action === 'delete' || action === 'suspend')) {
+      return fail('Super Admin accounts cannot be demoted, deleted, or suspended', 400)
     }
 
     switch (action) {
@@ -52,6 +52,12 @@ export async function PATCH(
       case 'reject':
         await db.admin.update({ where: { id }, data: { status: 'REJECTED' } })
         return NextResponse.json({ success: true, message: 'Account rejected' })
+      case 'suspend':
+        await db.admin.update({ where: { id }, data: { status: 'SUSPENDED' } })
+        return NextResponse.json({ success: true, message: 'Account suspended — admin can no longer log in' })
+      case 'unsuspend':
+        await db.admin.update({ where: { id }, data: { status: 'APPROVED' } })
+        return NextResponse.json({ success: true, message: 'Account reactivated' })
       case 'promote':
         await db.admin.update({ where: { id }, data: { role: 'SUPER_ADMIN' } })
         return NextResponse.json({ success: true, message: 'Promoted to super admin' })

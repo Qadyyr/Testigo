@@ -12,6 +12,7 @@ import {
   Database as DatabaseIcon,
   Edit,
   FileText,
+  Ban,
   LayoutDashboard,
   Loader2,
   LogOut,
@@ -1352,7 +1353,7 @@ function AdminsContent() {
     }
   }
 
-  async function handleAction(id: string, action: 'approve' | 'reject' | 'promote' | 'demote' | 'delete') {
+  async function handleAction(id: string, action: 'approve' | 'reject' | 'promote' | 'demote' | 'delete' | 'suspend' | 'unsuspend') {
     setActing(id + action)
     try {
       const res = await fetch(`/api/admin/admins/${id}`, {
@@ -1511,6 +1512,11 @@ function AdminsContent() {
                   {a.status === 'REJECTED' && (
                     <Badge variant="destructive">Rejected</Badge>
                   )}
+                  {a.status === 'SUSPENDED' && (
+                    <Badge className="border-transparent bg-orange-500/15 text-orange-700 dark:text-orange-300">
+                      <Ban className="size-3" /> Suspended
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">{a.email}</p>
               </div>
@@ -1533,6 +1539,77 @@ function AdminsContent() {
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={() => handleAction(a.id, 'promote')}>
                           Promote to Super Admin
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" disabled={!!acting}>
+                        <Ban className="size-3.5" />
+                        <span className="hidden sm:inline">Suspend</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Suspend {a.name}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          The admin will be immediately logged out and cannot log in until reactivated. Their tests and data are preserved.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleAction(a.id, 'suspend')}>
+                          Suspend account
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" disabled={!!acting}>
+                        {acting === a.id + 'delete' ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete {a.name}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This permanently deletes the admin account. Their tests, questions, attempts, and all related data will also be deleted. This cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleAction(a.id, 'delete')}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete account
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
+              {a.status === 'SUSPENDED' && a.role !== 'SUPER_ADMIN' && (
+                <div className="flex shrink-0 gap-1.5">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" disabled={!!acting}>
+                        Reactivate
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Reactivate {a.name}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          The admin will be able to log in and manage their tests again immediately.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleAction(a.id, 'unsuspend')}>
+                          Reactivate
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
