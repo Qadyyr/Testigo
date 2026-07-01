@@ -130,6 +130,8 @@ interface GradedAnswer {
 }
 interface ResultData {
   score: number
+  obtainedMarks?: number
+  maxMarks?: number
   total: number
   correct: number | null
   pending: number
@@ -141,6 +143,8 @@ interface ResultData {
 }
 interface AlreadyAttemptedResult {
   score: number
+  obtainedMarks?: number
+  maxMarks?: number
   status: string
   startedAt: string
   submittedAt: string | null
@@ -294,6 +298,8 @@ export function ParticipantTestView() {
       const r = data as AlreadyAttemptedResult
       setResult({
         score: r.score,
+        obtainedMarks: r.obtainedMarks,
+        maxMarks: r.maxMarks,
         total: 0,
         correct: null,
         pending: r.pendingGrading,
@@ -1438,8 +1444,13 @@ function Result({ result, onHome, onRetake }: { result: ResultData | null; onHom
               <CardTitle className="text-2xl">
                 {isRevisit ? 'Your result' : 'Test submitted!'}
               </CardTitle>
-              <div className="mt-2">
+              <div className="mt-2 flex flex-col items-center gap-1">
                 <span className="text-4xl font-bold text-amber-600">{result.score}%</span>
+                {result.obtainedMarks != null && result.maxMarks != null && result.maxMarks > 0 && (
+                  <span className="text-base font-medium text-muted-foreground">
+                    {result.obtainedMarks} / {result.maxMarks} marks
+                  </span>
+                )}
               </div>
               {result.correct !== null && result.total > 0 && (
                 <CardDescription>

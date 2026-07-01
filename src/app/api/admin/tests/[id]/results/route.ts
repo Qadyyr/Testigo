@@ -59,7 +59,7 @@ export async function GET(
       db.question.findMany({
         where: { testId: id },
         orderBy: { order: 'asc' },
-        select: { id: true, questionText: true, order: true },
+        select: { id: true, questionText: true, order: true, positiveMarks: true },
       }),
       db.attempt.findMany({
         where: whereClause,
@@ -88,11 +88,18 @@ export async function GET(
         return true
       }).length
 
+      // Compute obtained marks from responses.
+      const obtainedMarks = a.responses.reduce((s, r) => s + (r.marksAwarded ?? 0), 0)
+
       return {
         id: a.id,
         name: a.participant.name ?? 'Anonymous',
         identifier: a.participant.identifier ?? '—',
         score: a.totalScore ?? 0,
+        obtainedMarks: Math.round(obtainedMarks * 100) / 100,
+        maxMarks: questionsTotal > 0
+          ? Math.round(questions.reduce((s, q) => s + q.positiveMarks, 0) * 100) / 100
+          : 0,
         status: a.status,
         startedAt: a.startTime.toISOString(),
         submittedAt: a.endTime?.toISOString() ?? null,

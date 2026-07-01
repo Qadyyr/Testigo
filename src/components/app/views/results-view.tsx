@@ -24,6 +24,8 @@ interface StudentAttempt {
   name: string
   identifier: string
   score: number
+  obtainedMarks?: number
+  maxMarks?: number
   status: string
   startedAt: string
   submittedAt: string | null
@@ -223,6 +225,11 @@ export function ResultsView() {
                           <span className={`font-semibold tabular-nums ${a.score >= 50 ? 'text-amber-600' : 'text-destructive'}`}>
                             {a.score}%
                           </span>
+                          {a.obtainedMarks != null && a.maxMarks != null && a.maxMarks > 0 && (
+                            <div className="text-xs text-muted-foreground tabular-nums">
+                              {a.obtainedMarks}/{a.maxMarks}
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-3 tabular-nums">
                           {a.questionsAttempted}/{a.questionsTotal}
@@ -255,6 +262,11 @@ export function ResultsView() {
                       </div>
                       <span className={`font-semibold tabular-nums ${a.score >= 50 ? 'text-amber-600' : 'text-destructive'}`}>
                         {a.score}%
+                        {a.obtainedMarks != null && a.maxMarks != null && a.maxMarks > 0 && (
+                          <span className="block text-xs font-normal text-muted-foreground">
+                            {a.obtainedMarks}/{a.maxMarks} marks
+                          </span>
+                        )}
                       </span>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">

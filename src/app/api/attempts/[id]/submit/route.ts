@@ -229,6 +229,8 @@ export async function POST(
 
     return ok({
       score,
+      obtainedMarks: Math.round(obtainedMarks * 100) / 100,
+      maxMarks: Math.round(maxMarks * 100) / 100,
       total: questions.length,
       correct: correctCount,
       pending: pendingCount,

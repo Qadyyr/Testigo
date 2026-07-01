@@ -196,6 +196,15 @@ export async function POST(
           ? fullAttempt.responses.filter((r) => r.marksAwarded === null).length
           : 0
 
+        // Compute marks from responses.
+        const obtainedMarks = fullAttempt
+          ? fullAttempt.responses.reduce((s, r) => s + (r.marksAwarded ?? 0), 0)
+          : 0
+        const maxMarks = await db.question.aggregate({
+          where: { testId: test.id },
+          _sum: { positiveMarks: true },
+        }).then((r) => r._sum.positiveMarks ?? 0)
+
         const showResults = test.resultReleaseMode === 'IMMEDIATE' && pendingCount === 0
 
         // Can the student retake? (0 = unlimited, or hasn't used all attempts)
@@ -207,6 +216,8 @@ export async function POST(
           message: 'You have already attempted this test.',
           result: fullAttempt ? {
             score: fullAttempt.totalScore ?? 0,
+            obtainedMarks: Math.round(obtainedMarks * 100) / 100,
+            maxMarks: Math.round(maxMarks * 100) / 100,
             status: fullAttempt.status,
             startedAt: fullAttempt.startTime.toISOString(),
             submittedAt: fullAttempt.endTime?.toISOString() ?? null,
