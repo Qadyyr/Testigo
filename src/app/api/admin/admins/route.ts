@@ -41,16 +41,53 @@ export async function GET() {
         role: true,
         status: true,
         createdAt: true,
+        _count: { select: { tests: true } },
       },
     })
+
+    // Enrich each admin with real usage stats + last activity timestamps.
+    // This is what makes the Super Admin's admin cards data-rich instead of
+    // showing only name/email/status.
+    const enriched = await Promise.all(
+      admins.map(async (a) => {
+        const [questionCount, attemptCount, participantCount, lastTest, lastAttempt] =
+          await Promise.all([
+            db.question.count({ where: { test: { createdBy: a.id } } }),
+            db.attempt.count({ where: { test: { createdBy: a.id } } }),
+            db.participant.count({ where: { test: { createdBy: a.id } } }),
+            db.test.findFirst({
+              where: { createdBy: a.id },
+              orderBy: { createdAt: 'desc' },
+              select: { title: true, createdAt: true },
+            }),
+            db.attempt.findFirst({
+              where: { test: { createdBy: a.id } },
+              orderBy: { createdAt: 'desc' },
+              select: { createdAt: true },
+            }),
+          ])
+        return {
+          id: a.id,
+          email: a.email,
+          name: a.name,
+          role: a.role,
+          status: a.status,
+          createdAt: a.createdAt.toISOString(),
+          testCount: a._count.tests,
+          questionCount,
+          attemptCount,
+          participantCount,
+          lastTestTitle: lastTest?.title ?? null,
+          lastTestDate: lastTest?.createdAt.toISOString() ?? null,
+          lastAttemptDate: lastAttempt?.createdAt.toISOString() ?? null,
+        }
+      })
+    )
 
     return NextResponse.json({
       success: true,
       message: 'ok',
-      data: admins.map((a) => ({
-        ...a,
-        createdAt: a.createdAt.toISOString(),
-      })),
+      data: enriched,
     })
   } catch (err) {
     console.error('[GET /api/admin/admins]', err)

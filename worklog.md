@@ -316,3 +316,24 @@ Work Log:
 
 Stage Summary:
 - All sidebar items functional. No more 'Soon' badges. Lint + tsc clean.
+
+---
+Task ID: 19
+Agent: orchestrator (main)
+Task: Audit + big upgrade of the Super Admin experience — platform-wide dashboard, data-rich admin cards, owner drill-down filter.
+
+Work Log:
+- AUDIT: Found the Super Admin saw the SAME personal dashboard as regular admins (own tests/attempts only). Admin cards were data-empty (name/email/status only — no insight into what each admin owns). No activity feed, no leaderboard, no trends. The Database page computed per-admin stats but they were disconnected from the Admins management page.
+- Backend — NEW /api/admin/platform-stats route (Super Admin only): returns platform KPIs (total/active/suspended/pending admins, total/published tests, total/graded attempts, platform avg score, 7-day test+attempt counts), real-time storage %, top-5 admins leaderboard (by attempts, with full per-admin stats + last test/attempt), and a merged recent-activity feed (tests created + attempts submitted + admins joined, top 12, sorted by timestamp). All derived from existing timestamps — no schema change needed.
+- Backend — ENHANCED /api/admin/admins GET: each admin now returns real usage stats (testCount, questionCount, attemptCount, participantCount, lastTestTitle, lastTestDate, lastAttemptDate) via parallel Prisma queries. This is what makes the admin cards data-rich.
+- Frontend — NEW SuperAdminDashboardContent component (replaces DashboardContent when role=SUPER_ADMIN): 6 KPI cards (Admins, Tests, Attempts, Avg Score, DB Used, 7-day Activity) each with icon + sub-text; Top-admins leaderboard card (ranked by attempts, with progress bars + per-admin test/question/student counts); Recent-activity feed card (color-coded by event type: amber=test, emerald=submission, sky=join, with relative timestamps); Storage gauge card; 3 quick-action cards (Manage admins / Browse tests / Database insights). Completely different from the regular admin's personal dashboard.
+- Frontend — REWROTE AdminsContent: each admin is now a rich Card (not a flat row) with avatar (initials, color-coded by role/status), name + role/status badges, a 4-pill stats grid (Tests/Questions/Attempts/Students with icons), last-activity footer (last test title + relative time, last attempt relative time, joined date), and action buttons (Promote/Suspend/Delete or Reactivate/Delete) with confirmation dialogs that include the admin's real data counts. Added a status-filter toolbar (All/Active/Suspended/Pending with live counts) + search-by-name-or-email. Suspended admins render at 75% opacity. Super Admin cards show a "Protected" badge.
+- Frontend — Added owner filter to TestsContent (Super Admin only): a Select dropdown listing all unique admin owners, so the Super Admin can drill down from a specific admin's card to see only their tests.
+- Helpers: added relativeTime() (formatDistanceToNow), initialsOf() (avatar initials from name/email). Added Select, ClipboardCheck, UserPlus, Crown, Gauge, Activity, Inbox, Zap icon imports.
+- NEXTAUTH_SECRET was missing from .env — added a stable secret so JWTs persist across dev-server restarts (was causing 403s on authenticated API routes).
+- Schema: temporarily switched to sqlite for local verification (db:push + seed), then restored to postgresql (production = Neon on Vercel). The pg_database_size() query in platform-stats is wrapped in try/catch — gracefully returns 0% on SQLite, real % on Postgres.
+
+Stage Summary:
+- VERIFIED via HTTP (curl): login as SuperAdmin (qadyyr@gmail.com) → GET /api/admin/platform-stats returns correct KPIs (3 admins [2 active, 1 suspended], 5 tests [4 published], 1 attempt [avg 50%], 5 tests + 1 attempt in 7 days), leaderboard (Sara #1 with 1 attempt, Qadyyr #2, Usman #3 suspended), 9-item activity feed. GET /api/admin/admins returns all 3 admins with full stats (tests/questions/attempts/students/lastTest/lastAttempt).
+- VERIFIED via Agent Browser: Super Admin dashboard renders with ALL real data — 6 KPI cards, top-admins leaderboard with progress bars, 9-item recent-activity feed with relative timestamps ("18 minutes ago"), storage gauge, quick-action cards. Login page renders. Gateway proxies after ~25s warmup.
+- Lint clean, tsc clean (my files). Dev server environmentally unstable in sandbox (dies after ~30-60s, likely memory limits) — the Admins page browser screenshot couldn't be captured because the server dies before the post-navigation fetch completes, but the API is verified correct via curl and the component is type-safe + uses the same patterns as the verified dashboard.
