@@ -12,7 +12,7 @@ const patchSchema = z.object({
   startTime: z.string().datetime().optional().nullable(),
   endTime: z.string().datetime().optional().nullable(),
   timezone: z.string().max(100).optional().nullable(),
-  timeLimitMinutes: z.number().int().positive().optional().nullable(),
+  timeLimitMinutes: z.number().int().min(1).optional().nullable(),
   maxAttempts: z.number().int().min(0).optional(),
   resultReleaseMode: z.enum(['IMMEDIATE', 'MANUAL', 'NEVER']).optional(),
   positiveMarks: z.number().min(0).optional(),
