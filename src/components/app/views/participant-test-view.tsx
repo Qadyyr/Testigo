@@ -158,6 +158,28 @@ interface ApiEnvelope<T> {
 
 type Phase = 'loading' | 'not-found' | 'error' | 'landing' | 'gating' | 'taking' | 'result'
 
+/** Splits text by URLs and returns React nodes with clickable <a> tags. */
+function renderTextWithLinks(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const parts = text.split(urlRegex)
+  return parts.map((part, i) => {
+    if (urlRegex.test(part)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber-600 underline underline-offset-2 hover:text-amber-700"
+        >
+          {part}
+        </a>
+      )
+    }
+    return <span key={i}>{part}</span>
+  })
+}
+
 // ---- zustand store for the test-taking state -------------------------------
 
 interface TestStore {
@@ -515,8 +537,8 @@ function Landing({ test, onStart }: { test: ParticipantTest; onStart: () => void
           <div className="flex flex-wrap items-center gap-2">{statusBadge}</div>
           <CardTitle className="text-balance text-2xl sm:text-3xl">{test.title}</CardTitle>
           {test.description && (
-            <CardDescription className="text-pretty text-sm sm:text-base">
-              {test.description}
+            <CardDescription className="whitespace-pre-wrap break-words text-pretty text-sm sm:text-base">
+              {renderTextWithLinks(test.description)}
             </CardDescription>
           )}
         </CardHeader>
