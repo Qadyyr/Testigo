@@ -1476,14 +1476,13 @@ function Result({ result, onHome, onRetake }: { result: ResultData | null; onHom
       {result.showResults && result.answers && result.answers.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Review — questions &amp; answers</CardTitle>
+            <CardTitle className="text-base">Review</CardTitle>
             <CardDescription>
-              Your selected answer is highlighted. The correct answer is marked with a check.
+              Correct answers are highlighted in amber.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+          <CardContent className="flex flex-col gap-0">
             {result.answers.map((a, i) => {
-              // Normalize to numbers — JSON may return ["1"] instead of [1].
               const userSel: number[] = Array.isArray(a.userAnswer)
                 ? (a.userAnswer as unknown[]).map((n) => Number(n)).filter((n) => Number.isFinite(n))
                 : []
@@ -1492,14 +1491,13 @@ function Result({ result, onHome, onRetake }: { result: ResultData | null; onHom
                 : []
               const isMcq = a.type === 'MCQ' || a.type === 'TRUE_FALSE'
               return (
-                <div key={a.questionId} className="rounded-lg border p-3 sm:p-4">
-                  <div className="mb-3 flex items-start gap-3">
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                <div key={a.questionId} className={i > 0 ? 'border-t pt-6' : ''}>
+                  <div className="mb-4 flex items-start gap-3">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                       {i + 1}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-relaxed">{a.questionText}</p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
                         {a.isCorrect === true && (
                           <Badge className="border-transparent bg-amber-500/15 text-amber-700 dark:text-amber-300">
                             <CheckCircle2 className="size-3" /> Correct
@@ -1519,65 +1517,64 @@ function Result({ result, onHome, onRetake }: { result: ResultData | null; onHom
                           {a.marksAwarded !== null ? `+${a.marksAwarded}` : '—'} / {a.positiveMarks}
                         </Badge>
                       </div>
+                      <p className="text-base font-semibold leading-relaxed">{a.questionText}</p>
                     </div>
                   </div>
 
-                  {isMcq ? (
-                    <div className="flex flex-col gap-1.5 sm:pl-10">
+                  {/* MCQ options — flat, no nested borders */}
+                  {isMcq && (
+                    <div className="flex flex-col gap-1.5 sm:pl-11">
                       {a.options.map((opt, oi) => {
                         const userPicked = userSel.includes(oi)
                         const isCorrectOpt = correct.includes(oi)
                         return (
                           <div
                             key={oi}
-                            className={`flex items-start gap-2 rounded-md border px-2.5 py-2 text-sm sm:gap-2 sm:px-3 ${
-                              isCorrectOpt
-                                ? 'border-amber-500/50 bg-amber-50 dark:bg-amber-950/30'
-                                : userPicked
-                                  ? 'border-destructive/40 bg-destructive/5'
-                                  : 'border-border'
+                            className={`flex items-center gap-3 py-2 text-base ${
+                              isCorrectOpt ? 'text-amber-700 dark:text-amber-300'
+                                : userPicked ? 'text-destructive'
+                                : 'text-muted-foreground'
                             }`}
                           >
                             {isCorrectOpt ? (
-                              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                              <CheckCircle2 className="size-5 shrink-0 text-amber-600" />
                             ) : userPicked ? (
-                              <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                              <XCircle className="size-5 shrink-0 text-destructive" />
                             ) : (
-                              <span className="mt-0.5 size-4 shrink-0 rounded-full border" />
+                              <span className="size-5 shrink-0 rounded-full border-2 border-border" />
                             )}
-                            <span className={`min-w-0 flex-1 ${isCorrectOpt ? 'font-medium text-amber-800 dark:text-amber-200' : ''}`}>
+                            <span className={isCorrectOpt ? 'font-medium' : userPicked ? 'font-medium' : ''}>
                               {opt}
                             </span>
                             {userPicked && !isCorrectOpt && (
-                              <span className="shrink-0 text-xs text-destructive">your answer</span>
+                              <span className="ml-auto text-xs text-destructive">your answer</span>
                             )}
                             {isCorrectOpt && (
-                              <span className="shrink-0 text-xs text-amber-600">correct</span>
+                              <span className="ml-auto text-xs text-amber-600">correct</span>
                             )}
                           </div>
                         )
                       })}
                     </div>
-                  ) : (
-                    <div className="flex flex-col gap-2 sm:pl-10">
-                      <div className="rounded-md border border-border bg-muted/30 p-2.5 text-sm">
-                        <span className="text-xs font-medium text-muted-foreground">Your answer</span>
-                        <p className="mt-1 break-words">{(a.userAnswer as string) || <span className="text-muted-foreground">No answer</span>}</p>
-                      </div>
-                      <div className="rounded-md border border-amber-500/40 bg-amber-50 p-2.5 text-sm dark:bg-amber-950/30">
-                        <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Acceptable answers</span>
-                        <p className="mt-1 break-words text-amber-800 dark:text-amber-200">
-                          {(a.correctAnswers as string[]).join(', ')}
-                        </p>
-                      </div>
+                  )}
+
+                  {/* SHORT answers — flat */}
+                  {!isMcq && (
+                    <div className="sm:pl-11">
+                      <p className="text-sm text-muted-foreground">
+                        Your answer: <span className="text-foreground">{(a.userAnswer as string) || <span className="italic">No answer</span>}</span>
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Acceptable: <span className="text-amber-700 dark:text-amber-300 font-medium">{(a.correctAnswers as string[]).join(', ')}</span>
+                      </p>
                     </div>
                   )}
 
+                  {/* Explanation — flat */}
                   {a.explanation && (
-                    <div className="mt-2.5 rounded-md border border-border bg-muted/20 p-2.5 text-sm sm:ml-10 sm:mt-3">
-                      <span className="block text-xs font-medium text-muted-foreground">Explanation</span>
-                      <p className="mt-1 break-words text-muted-foreground">{a.explanation}</p>
-                    </div>
+                    <p className="mt-3 text-sm text-muted-foreground sm:pl-11">
+                      <span className="font-medium">Explanation:</span> {a.explanation}
+                    </p>
                   )}
                 </div>
               )
