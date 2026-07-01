@@ -174,7 +174,7 @@ function renderTextWithLinks(text: string) {
           href={part}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-amber-600 underline underline-offset-2 hover:text-amber-700"
+          className="text-amber-600 underline underline-offset-2 break-all hover:text-amber-700"
         >
           {part}
         </a>
@@ -543,7 +543,7 @@ function Landing({ test, onStart }: { test: ParticipantTest; onStart: () => void
           <div className="flex flex-wrap items-center gap-2">{statusBadge}</div>
           <CardTitle className="text-balance text-2xl sm:text-3xl">{test.title}</CardTitle>
           {test.description && (
-            <CardDescription className="whitespace-pre-wrap break-words text-pretty text-sm sm:text-base">
+            <CardDescription className="whitespace-pre-wrap break-all text-pretty text-sm sm:text-base">
               {renderTextWithLinks(test.description)}
             </CardDescription>
           )}
