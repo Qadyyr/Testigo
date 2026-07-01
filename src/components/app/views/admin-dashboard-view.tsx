@@ -1023,14 +1023,28 @@ function TestsContent({ navigate, isSuperAdmin }: { navigate: (view?: string, ex
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('edit', { id: t.id })}
-                  >
-                    <Edit className="size-4" />
-                    <span className="hidden sm:inline">Edit</span>
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Edit className="size-4" />
+                        <span className="hidden sm:inline">Edit</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Edit &ldquo;{t.title}&rdquo;?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You will be able to change test settings and questions. Existing student attempts will not be affected.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => navigate('edit', { id: t.id })}>
+                          Edit test
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   <Button
                     variant="outline"
                     size="sm"

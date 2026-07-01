@@ -391,13 +391,7 @@ export function EditTestView() {
         )}
 
         {editTab === 'questions' && (
-          <QuestionsManager
-            testId={testId}
-            onBack={() => {
-              setEditTab('settings')
-              toast.success('Changes saved')
-            }}
-          />
+          <QuestionsManager testId={testId} onBack={() => setEditTab('settings')} />
         )}
       </main>
 
@@ -495,7 +489,7 @@ function QuestionsManager({ testId, onBack }: { testId: string; onBack: () => vo
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onBack}>
-            <ArrowLeft className="size-4" /> Back to settings
+            <ArrowLeft className="size-4" /> Settings
           </Button>
           <Button size="sm" onClick={() => setShowAdd(true)} className="bg-amber-600 text-white hover:bg-amber-700">
             <Plus className="size-4" /> Add question
