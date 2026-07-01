@@ -1554,36 +1554,34 @@ function Result({ result, onHome, onRetake }: { result: ResultData | null; onHom
                     </div>
                   </div>
 
-                  {/* MCQ options — flat, no nested borders */}
+                  {/* MCQ options — flat, aligned */}
                   {isMcq && (
-                    <div className="flex flex-col gap-1.5 sm:pl-11">
+                    <div className="flex flex-col gap-1 sm:pl-11">
                       {a.options.map((opt, oi) => {
                         const userPicked = userSel.includes(oi)
                         const isCorrectOpt = correct.includes(oi)
                         return (
                           <div
                             key={oi}
-                            className={`flex items-center gap-3 py-2 text-base ${
-                              isCorrectOpt ? 'text-amber-700 dark:text-amber-300'
-                                : userPicked ? 'text-destructive'
-                                : 'text-muted-foreground'
-                            }`}
+                            className="flex items-center gap-3 py-2 text-base"
                           >
-                            {isCorrectOpt ? (
-                              <CheckCircle2 className="size-5 shrink-0 text-amber-600" />
-                            ) : userPicked ? (
-                              <XCircle className="size-5 shrink-0 text-destructive" />
-                            ) : (
-                              <span className="size-5 shrink-0 rounded-full border-2 border-border" />
-                            )}
-                            <span className={isCorrectOpt ? 'font-medium' : userPicked ? 'font-medium' : ''}>
+                            <span className="flex size-5 shrink-0 items-center justify-center">
+                              {isCorrectOpt ? (
+                                <CheckCircle2 className="size-5 text-amber-600" />
+                              ) : userPicked ? (
+                                <XCircle className="size-5 text-destructive" />
+                              ) : (
+                                <span className="size-5 rounded-full border-2 border-border" />
+                              )}
+                            </span>
+                            <span className={`flex-1 ${isCorrectOpt ? 'font-medium text-amber-700 dark:text-amber-300' : userPicked ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
                               {opt}
                             </span>
                             {userPicked && !isCorrectOpt && (
-                              <span className="ml-auto text-xs text-destructive">your answer</span>
+                              <span className="shrink-0 text-xs text-destructive">your answer</span>
                             )}
                             {isCorrectOpt && (
-                              <span className="ml-auto text-xs text-amber-600">correct</span>
+                              <span className="shrink-0 text-xs text-amber-600">correct</span>
                             )}
                           </div>
                         )
@@ -1603,11 +1601,12 @@ function Result({ result, onHome, onRetake }: { result: ResultData | null; onHom
                     </div>
                   )}
 
-                  {/* Explanation — flat */}
+                  {/* Explanation — in a subtle box */}
                   {a.explanation && (
-                    <p className="mt-3 text-sm text-muted-foreground sm:pl-11">
-                      <span className="font-medium">Explanation:</span> {a.explanation}
-                    </p>
+                    <div className="mt-3 rounded-lg bg-muted/40 px-4 py-3 text-sm sm:ml-11">
+                      <span className="font-medium text-muted-foreground">Explanation: </span>
+                      <span className="text-muted-foreground">{a.explanation}</span>
+                    </div>
                   )}
                 </div>
               )

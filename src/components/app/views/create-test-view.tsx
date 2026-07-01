@@ -1062,28 +1062,28 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
                 </div>
               </div>
 
-              {/* Options — flat, no nested borders */}
+              {/* Options — flat, aligned */}
               {(q.type === 'MCQ' || q.type === 'TRUE_FALSE') && (
-                <div className="flex flex-col gap-1.5 sm:pl-11">
+                <div className="flex flex-col gap-1 sm:pl-11">
                   {q.options.map((opt, oi) => {
                     const isCorrect = correctIdx.includes(oi)
                     return (
                       <div
                         key={oi}
-                        className={`flex items-center gap-3 py-2 text-base ${
-                          isCorrect ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground'
-                        }`}
+                        className="flex items-center gap-3 py-2 text-base"
                       >
-                        {isCorrect ? (
-                          <CheckCircle2 className="size-5 shrink-0 text-amber-600" />
-                        ) : (
-                          <span className="size-5 shrink-0 rounded-full border-2 border-border" />
-                        )}
-                        <span className={isCorrect ? 'font-medium' : ''}>
+                        <span className="flex size-5 shrink-0 items-center justify-center">
+                          {isCorrect ? (
+                            <CheckCircle2 className="size-5 text-amber-600" />
+                          ) : (
+                            <span className="size-5 rounded-full border-2 border-border" />
+                          )}
+                        </span>
+                        <span className={`flex-1 ${isCorrect ? 'font-medium text-amber-700 dark:text-amber-300' : 'text-muted-foreground'}`}>
                           {opt}
                         </span>
                         {isCorrect && (
-                          <span className="ml-auto text-xs text-amber-600">correct</span>
+                          <span className="shrink-0 text-xs text-amber-600">correct</span>
                         )}
                       </div>
                     )
@@ -1100,11 +1100,12 @@ function QuestionPreview({ questions }: { questions: ParsedQuestion[] }) {
                 </div>
               )}
 
-              {/* Explanation — flat */}
+              {/* Explanation — in a subtle box */}
               {q.explanation && (
-                <p className="mt-3 text-sm text-muted-foreground sm:pl-11">
-                  <span className="font-medium">Explanation:</span> {q.explanation}
-                </p>
+                <div className="mt-3 rounded-lg bg-muted/40 px-4 py-3 text-sm sm:ml-11">
+                  <span className="font-medium text-muted-foreground">Explanation: </span>
+                  <span className="text-muted-foreground">{q.explanation}</span>
+                </div>
               )}
             </div>
           )
